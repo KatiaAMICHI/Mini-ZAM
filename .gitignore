@@ -1,5 +1,4 @@
 .idea/
 venv/
 __pycharm__/
-
-
+*.pyc

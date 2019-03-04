@@ -154,7 +154,7 @@ class Closure(Instruction):
         (label, n) = state.fetch()
         if n > 0:
             state.push(state.get_accumulator())
-            state.set_accumulator(MLValue.from_closure(state.find(label), state.pop(n)))
+            state.set_accumulator(MLValue.from_closure(state.get_position(label), state.pop(n)))
 
 
 class Apply(Instruction):
@@ -171,9 +171,8 @@ class Apply(Instruction):
 class Return(Instruction):
     def execute(self, state):
         n = state.fetch()
-        args = state.pop()
-        closure = MLValue.from_closure(args[-1])
-        state.change_context(closure)
+        args = state.pop(n)
+        state.change_context(args[-1])
 
 
 class Stop(Instruction):
