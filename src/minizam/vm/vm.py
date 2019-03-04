@@ -50,6 +50,7 @@ class MiniZamVM:
                     "CLOSURE": Closure(), "APPLY": Apply(), "RETURN": Return(), "STOP": Stop()}
 
     def __init__(self):
+        # TODO prog is an array of LineInstruction
         self.prog = np.array([], dtype=[('label', np.object),
                                         ('inst', np.object)])  # un tableau de couples (label, instruction)
         self.stack = _Stack()  # structure LIFO
@@ -96,6 +97,8 @@ class MiniZamVM:
         pass
 
     def change_context(self, acc):
+        self.pc = acc.value[0]
+        self.env = acc.value[1]
         # TODO update pc and env, called by the Apply Instruction
         pass
 
@@ -107,6 +110,7 @@ class MiniZamVM:
         # TODO keep evaluating instruction respecting the pc register until encountering STOP
         pass
 
+    # TODO replace by using re
     def read_file(self):
         """ !!  a changer d'emplacement
         read intruction of program and set self.prog
