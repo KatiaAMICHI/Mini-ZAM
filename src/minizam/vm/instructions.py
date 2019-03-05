@@ -94,9 +94,11 @@ class _Print(_UnaryPrim):
 ###########################################
 class Const(Instruction):
     def execute(self, state):
-        print(" *** Begin CONST *** : ", int(state.fetch()[0]))
+        print(" *** Begin CONST *** : ")
+
         state.set_accumulator(MLValue.from_int(int(state.fetch()[0])))
         state.increment_pc()
+
         print(" *** End CONST *** ")
 
 
@@ -123,10 +125,10 @@ class Prim(Instruction):
 class Branch(Instruction):
     def execute(self, state):
         print(" *** Begin Branch ***")
-        label = state.fetch()[0]
-        print(" label dans BRANCH : ", label)
 
+        label = state.fetch()[0]
         state.set_pc(state.get_position(label))
+
         print(" --- End Branch ---")
 
 
@@ -146,7 +148,8 @@ class BranchIfNot(Instruction):
 
 class Push(Instruction):
     def execute(self, state):
-        print(" *** Begin PUCH ***", state.get_accumulator())
+        print(" *** Begin PUCH ***")
+
         state.push(state.get_accumulator())
         state.increment_pc()
 
@@ -156,6 +159,7 @@ class Push(Instruction):
 class Pop(Instruction):
     def execute(self, state):
         print(" *** Begin POP ***")
+
         state.pop()
         state.increment_pc()
 
@@ -165,6 +169,7 @@ class Pop(Instruction):
 class Acc(Instruction):
     def execute(self, state):
         print(" *** Begin ACC ***")
+
         state.set_accumulator(state.peek(int(state.fetch()[0])))
         state.increment_pc()
 
@@ -174,6 +179,7 @@ class Acc(Instruction):
 class EnvAcc(Instruction):
     def execute(self, state):
         print(" *** Begin ENVACC ***")
+
         state.set_accumulator(state.get_env(state.fetch()))
         state.increment_pc()
 
@@ -184,17 +190,20 @@ class Closure(Instruction):
 
     def execute(self, state):
         print(" *** Begin CLOSURE ***")
+
         (label, n) = tuple(state.fetch())
         if int(n) > 0:
             state.set_accumulator(MLValue.from_closure(state.get_position(label), state.pop(n)))
             state.pop(int(n) - 1)
         state.increment_pc()
+
         print(" --- End CLOSURE ---")
 
 
 class Apply(Instruction):
     def execute(self, state):
         print(" *** Begin APPLY ***")
+
         n = int(state.fetch()[0])
         args = state.pop(n)
         env = state.get_env()
@@ -202,12 +211,14 @@ class Apply(Instruction):
         state.push(args + [pc] + [env])
         acc = state.get_accumulator()
         state.change_context(acc)
+
         print(" --- End APPLY ---")
 
 
 class Return(Instruction):
     def execute(self, state):
         print(" *** Begin RETURN ***")
+
         n = int(state.fetch()[0])
         args = state.pop(n)
         state.set_pc(state.pop())

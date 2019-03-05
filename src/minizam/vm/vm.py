@@ -1,4 +1,6 @@
 import numpy as np
+import re
+import pprint
 from src.minizam.vm.instructions import *
 
 FILE_facto_tailrec = r"../../../tests/appterm/facto_tailrec.txt"
@@ -66,6 +68,13 @@ class LineInstruction:
 
     def __str__(self):
         return "(Label : %s, Command : %s, args : %s)" % (self.label, self.command, self.args)
+
+    @staticmethod
+    def build(line):
+        label = line[0] if line[0] else None
+        command = line[1]
+        args = line[2].replace(' ', '').split(",") if line[2] else None
+        return LineInstruction(label, command, args)
 
 
 class MiniZamVM:
@@ -166,25 +175,13 @@ class MiniZamVM:
         read intruction of program and set self.prog
         :rtype: object
         """
-
-        with open(file, "r") as f:
-            for line in f.readlines():
-                buffer = line.split()
-                label = buffer[0].replace(':', '')
-
-                if len(buffer) == 3:
-                    self.prog = np.append(self.prog,
-                                          LineInstruction(label=label, command=buffer[1], args=buffer[2].split(',')))
-                elif len(buffer) == 2:
-                    self.prog = np.append(self.prog, LineInstruction(command=buffer[0], args=buffer[1].split(',')))
-                elif len(buffer) == 1:
-                    self.prog = np.append(self.prog, LineInstruction(command=buffer[0]))
-
-                else:
-                    print('eroor: ', buffer)
+        with open(FILE_fun1, "r") as f:
+            lines = re.findall(r'(?:(\w+):)?\t(\w+)(.*)', f.read())
+            self.prog = list(map(LineInstruction.build, lines))
 
 
 miniZamVM = MiniZamVM()
 
 miniZamVM.read_file(FILE_fun1)
+# pprint.pprint(miniZamVM.prog)
 miniZamVM.run()
