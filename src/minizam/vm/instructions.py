@@ -195,6 +195,12 @@ class ClosureRec(Instruction):
         state.increment_pc()
 
 
+class OffSetClosure(Instruction):
+    def execute(self, state):
+        state.set_accumulator(MLValue.from_closure(state.get_env(0), state.get_env()))
+        state.increment_pc()
+
+
 class Apply(Instruction):
     def execute(self, state):
         n = int(state.fetch()[0])
