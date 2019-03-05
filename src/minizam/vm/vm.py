@@ -1,6 +1,7 @@
 import numpy as np
 from .mlvalue import MLValue
 from .instructions import *
+import re
 
 FILE_facto_tailrec = r"tests/appterm/facto_tailrec.txt"
 
@@ -41,7 +42,12 @@ class _Stack:
 
 # TODO a line instruction is define by its label, instruction, arguments
 class LineInstruction:
-    pass
+
+    @staticmethod
+    def build(line):
+        label = line[0] if line[0] else None
+        command = line[1]
+        args = line[2].split(",") if line[2] else None
 
 
 class MiniZamVM:
@@ -117,17 +123,5 @@ class MiniZamVM:
         :rtype: object
         """
         with open(FILE_facto_tailrec, "r") as f:
-            for line in f.readlines():
-                buffer = line.split()
-
-                # dans le cas où on a bien (label, instructions)
-                if len(buffer) == 3:
-                    label = buffer[0].replace(':', '')
-                    instructions = buffer[1:]
-                    self.prog = np.insert(self.prog, self.prog.size, (label, instructions))
-                # sinon on insert (None, instructions) None correspont a l'absence du label
-                elif len(buffer) > 0:
-                    self.prog = np.insert(self.prog, self.prog.size, (None, buffer))
-                # dans la cas la line est vide
-                else:
-                    print('eroor: ', buffer)
+            lines = re.findall(r'(?:(\w+):)?\t(\w+)(.*)', f.read())
+            self.prog = list(map(LineInstruction.build, lines))
