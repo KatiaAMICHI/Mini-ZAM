@@ -22,15 +22,22 @@ class _Stack:
                Renvoie et retire les n premier element de la queue
                :param n
            """
+        if self.is_empty():
+            return None
+        elif n == 0:
+            result = self.items[n]
+            del self.items[n]
+            return result
+        print("je suis la avec n : ", n)
         result = self.items[:n]
         del self.items[:n]
         return result
 
     def push(self, elements):
         if not isinstance(elements, list):
-            elements = [].append(elements)
+            elements = [elements]
             pass
-        self.items = elements[::-1] + self.items
+        self.items = elements + self.items
 
     def is_empty(self):
         return self.items == []
@@ -62,7 +69,7 @@ class LineInstruction:
 
 
 class MiniZamVM:
-    instructions = {"CONST": Acc(), "PRIM": Prim(), "BRANCH": Branch(), "BRANCHIFNOT": BranchIfNot(),
+    instructions = {"CONST": Const(), "PRIM": Prim(), "BRANCH": Branch(), "BRANCHIFNOT": BranchIfNot(),
                     "PUSH": Push(), "POP": Pop(), "ACC": Acc(), "ENVACC": EnvAcc(),
                     "CLOSURE": Closure(), "APPLY": Apply(), "RETURN": Return(), "STOP": Stop()}
 
@@ -95,6 +102,9 @@ class MiniZamVM:
     def set_pc(self, pc):
         self.pc = pc
 
+    def increment_pc(self):
+        self.pc += 1
+
     def get_pc(self):
         return self.pc
 
@@ -107,12 +117,22 @@ class MiniZamVM:
             return self.env[i]
         return self.env
 
+    def set_env(self, env):
+        self.env = env
+
+    def pop_env(self, n=0):
+        # TODO a supp !
+        result = self.env[n]
+        del self.env[n]
+        return result
+
     def get_position(self, label):
         """
 
         :return: renvoie la position du label dans prog
         """
-        return [list(self.prog).index(n) for n in self.prog if label == n.get_label()][0]
+
+        return list(self.prog).index(list(filter(lambda x: x.get_label() == label, self.prog))[0])
 
     def change_context(self, acc):
         """
@@ -128,11 +148,17 @@ class MiniZamVM:
         """
         return self.prog[self.pc].get_args()
 
+    def print_current_state(self):
+        print('>> pc = ', self.pc, ' | accu = ', self.acc,
+              " | size(stack) = ", self.stack.size(), " | env = ", self.env, " <<<")
+
     def run(self):
         # TODO keep evaluating instruction respecting the pc register until encountering STOP
+        self.print_current_state()
         while self.prog[self.pc].get_command() != 'STOP':
-            print("intruction courant : ", self.prog[self.pc])
+            print("> current intruction : ", self.prog[self.pc], " <")
             self.instructions[self.prog[self.pc].get_command()].execute(self)
+            self.print_current_state()
 
     # TODO replace by using re
     def read_file(self, file):
@@ -148,11 +174,10 @@ class MiniZamVM:
 
                 if len(buffer) == 3:
                     self.prog = np.append(self.prog,
-                                          LineInstruction(label=label, command=buffer[1], args=buffer[2]))
+                                          LineInstruction(label=label, command=buffer[1], args=buffer[2].split(',')))
                 elif len(buffer) == 2:
-                    self.prog = np.append(self.prog, LineInstruction(command=buffer[0], args=buffer[1]))
+                    self.prog = np.append(self.prog, LineInstruction(command=buffer[0], args=buffer[1].split(',')))
                 elif len(buffer) == 1:
-                    # self.prog = np.insert(self.prog, self.prog.size, LineInstruction(command=buffer[0]))
                     self.prog = np.append(self.prog, LineInstruction(command=buffer[0]))
 
                 else:
