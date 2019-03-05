@@ -1,10 +1,14 @@
+import pprint
 import numpy as np
 import re
-import pprint
 from src.minizam.vm.instructions import *
 
 FILE_facto_tailrec = r"../../../tests/appterm/facto_tailrec.txt"
+
 FILE_fun1 = r"../../../tests/unary_funs/fun1.txt"
+
+
+FILE_fun4 = r"../../../tests/unary_funs/fun4-nooptim.txt"
 
 
 class _Stack:
@@ -30,7 +34,6 @@ class _Stack:
             result = self.items[n]
             del self.items[n]
             return result
-        print("je suis la avec n : ", n)
         result = self.items[:n]
         del self.items[:n]
         return result
@@ -46,6 +49,9 @@ class _Stack:
 
     def size(self):
         return len(self.items)
+
+    def __repr__(self):
+        return "_Stack(items : %s )" % (self.items)
 
 
 class LineInstruction:
@@ -158,30 +164,28 @@ class MiniZamVM:
         return self.prog[self.pc].get_args()
 
     def print_current_state(self):
-        print('>> pc = ', self.pc, ' | accu = ', self.acc,
-              " | size(stack) = ", self.stack.size(), " | env = ", self.env, " <<<")
+        print('                                           '
+              '    -> pc=', self.pc, ' | accu=', self.acc,
+              " | size(stack)=", self.stack, " | env=", self.env, " <<<")
 
     def run(self):
-        # TODO keep evaluating instruction respecting the pc register until encountering STOP
-        self.print_current_state()
         while self.prog[self.pc].get_command() != 'STOP':
-            print("> current intruction : ", self.prog[self.pc], " <")
+            print("Current instruction :", self.prog[self.pc])
             self.instructions[self.prog[self.pc].get_command()].execute(self)
             self.print_current_state()
 
-    # TODO replace by using re
     def read_file(self, file):
         """
         read intruction of program and set self.prog
         :rtype: object
         """
-        with open(FILE_fun1, "r") as f:
+        with open(file, "r") as f:
             lines = re.findall(r'(?:(\w+):)?\t(\w+)(.*)', f.read())
             self.prog = list(map(LineInstruction.build, lines))
 
 
-miniZamVM = MiniZamVM()
-
-miniZamVM.read_file(FILE_fun1)
-# pprint.pprint(miniZamVM.prog)
-miniZamVM.run()
+if __name__ == '__main__':
+    miniZamVM = MiniZamVM()
+    miniZamVM.read_file(FILE_fun1)
+    # pprint.pprint(miniZamVM.prog)
+    miniZamVM.run()
