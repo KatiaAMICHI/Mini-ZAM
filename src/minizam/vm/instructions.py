@@ -165,25 +165,40 @@ class Closure(Instruction):
     def execute(self, state):
         (label, n) = tuple(state.fetch())
         n = int(n)
-        n_value = state.pop(n-1)
-        n_value = (n_value if isinstance(n_value, list) else [n_value])
+        vals_pop = state.pop(n - 1)
+        vals_pop = (vals_pop if isinstance(vals_pop, list) else [vals_pop])
+
+        acc = state.get_accumulator()
         if n > 0:
-            state.set_accumulator(
-                MLValue.from_closure(state.get_position(label), [state.get_accumulator()] + n_value))
-        else:
-            state.set_accumulator(MLValue.from_closure(state.get_position(label), n_value))
+            state.push(acc)
+
+        state.set_accumulator(MLValue.from_closure(state.get_position(label), vals_pop))
+
         state.increment_pc()
 
 
 class ClosureRec(Instruction):
+    # acc prend la valeur de la fermeture et cette valeur est empiler dans stack
 
     def execute(self, state):
+        (label, n) = tuple(state.fetch())
+        n = int(n)
+        vals_pop = state.pop(n - 1)
+        vals_pop = (vals_pop if isinstance(vals_pop, list) else [vals_pop])
+
+        acc = state.get_accumulator()
+        if n > 0:
+            state.push(acc)
+
+        acc = MLValue.from_closure(state.get_position(label), [state.get_position(label)] + vals_pop)
+        state.set_accumulator(acc)
+        state.push(acc)
+
         state.increment_pc()
 
 
 class Apply(Instruction):
     def execute(self, state):
-
         n = int(state.fetch()[0])
 
         args = state.pop(n)
