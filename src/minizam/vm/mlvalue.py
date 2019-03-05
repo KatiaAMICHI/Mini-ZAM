@@ -48,6 +48,16 @@ class MLValue:
         if not isinstance(other.value, int):
             raise TypeError(str(other.value) + " is not an instance of int")
 
+    def __repr__(self):
+        if self.value is MLValue._FALSE:
+            return "False"
+        if self.value is MLValue._TRUE:
+            return "True"
+        if self.value is MLValue._UNIT:
+            return "()"
+
+        return "mlvalue(Value: %s)" % str(self.value)
+
     def __str__(self):
         if self.value is MLValue._FALSE:
             return "False"
@@ -55,7 +65,7 @@ class MLValue:
             return "True"
         if self.value is MLValue._UNIT:
             return "()"
-        return str(self.value)
+        return "mlvalue(Value: %s)" % str(self.value)
 
     def __add__(self, other):
         self._check(other)

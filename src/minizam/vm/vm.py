@@ -1,9 +1,10 @@
 import numpy as np
-from .mlvalue import MLValue
-from .instructions import *
 import re
+import pprint
+from src.minizam.vm.instructions import *
 
-FILE_facto_tailrec = r"tests/appterm/facto_tailrec.txt"
+FILE_facto_tailrec = r"../../../tests/appterm/facto_tailrec.txt"
+FILE_fun1 = r"../../../tests/unary_funs/fun1.txt"
 
 
 class _Stack:
@@ -23,15 +24,22 @@ class _Stack:
                Renvoie et retire les n premier element de la queue
                :param n
            """
+        if self.is_empty():
+            return None
+        elif n == 0:
+            result = self.items[n]
+            del self.items[n]
+            return result
+        print("je suis la avec n : ", n)
         result = self.items[:n]
         del self.items[:n]
         return result
 
     def push(self, elements):
         if not isinstance(elements, list):
-            elements = [].append(elements)
+            elements = [elements]
             pass
-        self.items = elements[::-1] + self.items
+        self.items = elements + self.items
 
     def is_empty(self):
         return self.items == []
@@ -40,26 +48,42 @@ class _Stack:
         return len(self.items)
 
 
-# TODO a line instruction is define by its label, instruction, arguments
 class LineInstruction:
+    def __init__(self, label=None, command=None, args=None):
+        self.label = label
+        self.command = command
+        self.args = args
+
+    def get_label(self):
+        return self.label
+
+    def get_command(self):
+        return self.command
+
+    def get_args(self):
+        return self.args
+
+    def __repr__(self):
+        return "LineInstruction(Label : %s, Command : %s, args : %s)" % (self.label, self.command, self.args)
+
+    def __str__(self):
+        return "(Label : %s, Command : %s, args : %s)" % (self.label, self.command, self.args)
 
     @staticmethod
     def build(line):
         label = line[0] if line[0] else None
         command = line[1]
-        args = line[2].split(",") if line[2] else None
+        args = line[2].replace(' ', '').split(",") if line[2] else None
         return LineInstruction(label, command, args)
 
 
 class MiniZamVM:
-    instructions = {"CONST": Acc(), "PRIM": Prim(), "BRANCH": Branch(), "BRANCHIFNOT": BranchIfNot(),
+    instructions = {"CONST": Const(), "PRIM": Prim(), "BRANCH": Branch(), "BRANCHIFNOT": BranchIfNot(),
                     "PUSH": Push(), "POP": Pop(), "ACC": Acc(), "ENVACC": EnvAcc(),
                     "CLOSURE": Closure(), "APPLY": Apply(), "RETURN": Return(), "STOP": Stop()}
 
     def __init__(self):
-        # TODO prog is an array of LineInstruction
-        self.prog = np.array([], dtype=[('label', np.object),
-                                        ('inst', np.object)])  # un tableau de couples (label, instruction)
+        self.prog = np.array([])
         self.stack = _Stack()  # structure LIFO
         self.env = []  # un collection de mlvalue
         self.pc = 0  # pointeur de code vers l’instruction courante
@@ -87,6 +111,9 @@ class MiniZamVM:
     def set_pc(self, pc):
         self.pc = pc
 
+    def increment_pc(self):
+        self.pc += 1
+
     def get_pc(self):
         return self.pc
 
@@ -99,30 +126,62 @@ class MiniZamVM:
             return self.env[i]
         return self.env
 
+    def set_env(self, env):
+        self.env = env
+
+    def pop_env(self, n=0):
+        # TODO a supp !
+        result = self.env[n]
+        del self.env[n]
+        return result
+
     def get_position(self, label):
-        # TODO
-        pass
+        """
+
+        :return: renvoie la position du label dans prog
+        """
+
+        return list(self.prog).index(list(filter(lambda x: x.get_label() == label, self.prog))[0])
 
     def change_context(self, acc):
+        """
+        Change le context de pc et env à partir de la valeur de acc
+        """
         self.pc = acc.value[0]
         self.env = acc.value[1]
-        # TODO update pc and env, called by the Apply Instruction
-        pass
 
     def fetch(self):
-        # TODO return current (pc) instruction arguments
-        pass
+        """
+
+        :return: renvoie les arguments de l'instruction courante
+        """
+        return self.prog[self.pc].get_args()
+
+    def print_current_state(self):
+        print('>> pc = ', self.pc, ' | accu = ', self.acc,
+              " | size(stack) = ", self.stack.size(), " | env = ", self.env, " <<<")
 
     def run(self):
         # TODO keep evaluating instruction respecting the pc register until encountering STOP
-        pass
+        self.print_current_state()
+        while self.prog[self.pc].get_command() != 'STOP':
+            print("> current intruction : ", self.prog[self.pc], " <")
+            self.instructions[self.prog[self.pc].get_command()].execute(self)
+            self.print_current_state()
 
     # TODO replace by using re
-    def read_file(self):
-        """ !!  a changer d'emplacement
+    def read_file(self, file):
+        """
         read intruction of program and set self.prog
         :rtype: object
         """
-        with open(FILE_facto_tailrec, "r") as f:
+        with open(FILE_fun1, "r") as f:
             lines = re.findall(r'(?:(\w+):)?\t(\w+)(.*)', f.read())
             self.prog = list(map(LineInstruction.build, lines))
+
+
+miniZamVM = MiniZamVM()
+
+miniZamVM.read_file(FILE_fun1)
+# pprint.pprint(miniZamVM.prog)
+miniZamVM.run()

@@ -22,6 +22,7 @@ class _UnaryPrim(ABC):
 
 class _Add(_BinaryPrim):
     def execute(self, one, two):
+        print(' one : ', one, ' - two : ', two)
         return one + two
 
 
@@ -93,7 +94,12 @@ class _Print(_UnaryPrim):
 ###########################################
 class Const(Instruction):
     def execute(self, state):
-        state.set_accumulator(state.fetch())
+        print(" *** Begin CONST *** : ")
+
+        state.set_accumulator(MLValue.from_int(int(state.fetch()[0])))
+        state.increment_pc()
+
+        print(" *** End CONST *** ")
 
 
 class Prim(Instruction):
@@ -104,77 +110,126 @@ class Prim(Instruction):
     unary_op = {"not": _Not(), "print": _Print()}
 
     def execute(self, state):
-        op = state.fetch()
+        op = state.fetch()[0]
 
         if op in Prim.unary_op:
             x = Prim.unary_op[op].execute(state.get_accumulator())
             state.set_accumulator(x)
-
         elif op in Prim.binary_op:
             x = Prim.binary_op[op].execute(state.get_accumulator(), state.pop())
             state.set_accumulator(x)
 
+        state.increment_pc()
+
 
 class Branch(Instruction):
     def execute(self, state):
-        label = state.fetch()
+        print(" *** Begin Branch ***")
+
+        label = state.fetch()[0]
         state.set_pc(state.get_position(label))
+
+        print(" --- End Branch ---")
 
 
 class BranchIfNot(Instruction):
     def execute(self, state):
+        print(" *** Begin BranchIfNot ***")
+
         label = state.fetch()
         acc = state.get_accumulator()
         if acc == 0:
             state.set_pc(state.get_position(label))
+        else:
+            state.increment_pc()
+
+        print(" --- End BranchIfNot ---")
 
 
 class Push(Instruction):
     def execute(self, state):
+        print(" *** Begin PUCH ***")
+
         state.push(state.get_accumulator())
+        state.increment_pc()
+
+        print(" --- End PUCH ---")
 
 
 class Pop(Instruction):
     def execute(self, state):
+        print(" *** Begin POP ***")
+
         state.pop()
+        state.increment_pc()
+
+        print(" --- End POP ---")
 
 
 class Acc(Instruction):
     def execute(self, state):
-        state.set_accumulator(state.peek(state.fetch()))
+        print(" *** Begin ACC ***")
+
+        state.set_accumulator(state.peek(int(state.fetch()[0])))
+        state.increment_pc()
+
+        print(" --- End  ACC ---")
 
 
 class EnvAcc(Instruction):
     def execute(self, state):
+        print(" *** Begin ENVACC ***")
+
         state.set_accumulator(state.get_env(state.fetch()))
+        state.increment_pc()
+
+        print(" --- End ENVACC ---")
 
 
 class Closure(Instruction):
+
     def execute(self, state):
-        (label, n) = state.fetch()
-        if n > 0:
-            state.push(state.get_accumulator())
+        print(" *** Begin CLOSURE ***")
+
+        (label, n) = tuple(state.fetch())
+        if int(n) > 0:
             state.set_accumulator(MLValue.from_closure(state.get_position(label), state.pop(n)))
+            state.pop(int(n) - 1)
+        state.increment_pc()
+
+        print(" --- End CLOSURE ---")
 
 
 class Apply(Instruction):
     def execute(self, state):
-        n = state.fetch()
+        print(" *** Begin APPLY ***")
+
+        n = int(state.fetch()[0])
         args = state.pop(n)
         env = state.get_env()
         pc = state.get_pc() + 1
-        state.push(MLValue.from_closure(pc, env), args)
+        state.push(args + [pc] + [env])
         acc = state.get_accumulator()
         state.change_context(acc)
+
+        print(" --- End APPLY ---")
 
 
 class Return(Instruction):
     def execute(self, state):
-        n = state.fetch()
+        print(" *** Begin RETURN ***")
+
+        n = int(state.fetch()[0])
         args = state.pop(n)
-        state.change_context(args[-1])
+        state.set_pc(state.pop())
+        state.set_env(state.pop())
+
+        # state.change_context(args[-1])
+
+        print(" --- End RETURN ---")
 
 
 class Stop(Instruction):
     def execute(self, state):
+        print("STOP")
         pass
