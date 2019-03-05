@@ -48,6 +48,7 @@ class LineInstruction:
         label = line[0] if line[0] else None
         command = line[1]
         args = line[2].split(",") if line[2] else None
+        return LineInstruction(label, command, args)
 
 
 class MiniZamVM:
