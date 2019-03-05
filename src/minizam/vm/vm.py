@@ -1,8 +1,8 @@
 import numpy as np
-from .mlvalue import MLValue
-from .instructions import *
+from src.minizam.vm.instructions import *
 
-FILE_facto_tailrec = r"tests/appterm/facto_tailrec.txt"
+FILE_facto_tailrec = r"../../../tests/appterm/facto_tailrec.txt"
+FILE_fun1 = r"../../../tests/unary_funs/fun1.txt"
 
 
 class _Stack:
@@ -39,9 +39,26 @@ class _Stack:
         return len(self.items)
 
 
-# TODO a line instruction is define by its label, instruction, arguments
 class LineInstruction:
-    pass
+    def __init__(self, label=None, command=None, args=None):
+        self.label = label
+        self.command = command
+        self.args = args
+
+    def get_label(self):
+        return self.label
+
+    def get_command(self):
+        return self.command
+
+    def get_args(self):
+        return self.args
+
+    def __repr__(self):
+        return "LineInstruction(Label : %s, Command : %s, args : %s)" % (self.label, self.command, self.args)
+
+    def __str__(self):
+        return "(Label : %s, Command : %s, args : %s)" % (self.label, self.command, self.args)
 
 
 class MiniZamVM:
@@ -50,9 +67,7 @@ class MiniZamVM:
                     "CLOSURE": Closure(), "APPLY": Apply(), "RETURN": Return(), "STOP": Stop()}
 
     def __init__(self):
-        # TODO prog is an array of LineInstruction
-        self.prog = np.array([], dtype=[('label', np.object),
-                                        ('inst', np.object)])  # un tableau de couples (label, instruction)
+        self.prog = np.array([])
         self.stack = _Stack()  # structure LIFO
         self.env = []  # un collection de mlvalue
         self.pc = 0  # pointeur de code vers l’instruction courante
@@ -93,41 +108,58 @@ class MiniZamVM:
         return self.env
 
     def get_position(self, label):
-        # TODO
-        pass
+        """
+
+        :return: renvoie la position du label dans prog
+        """
+        return [list(self.prog).index(n) for n in self.prog if label == n.get_label()][0]
 
     def change_context(self, acc):
+        """
+        Change le context de pc et env à partir de la valeur de acc
+        """
         self.pc = acc.value[0]
         self.env = acc.value[1]
-        # TODO update pc and env, called by the Apply Instruction
-        pass
 
     def fetch(self):
-        # TODO return current (pc) instruction arguments
-        pass
+        """
+
+        :return: renvoie les arguments de l'instruction courante
+        """
+        return self.prog[self.pc].get_args()
 
     def run(self):
         # TODO keep evaluating instruction respecting the pc register until encountering STOP
-        pass
+        while self.prog[self.pc].get_command() != 'STOP':
+            print("intruction courant : ", self.prog[self.pc])
+            self.instructions[self.prog[self.pc].get_command()].execute(self)
 
     # TODO replace by using re
-    def read_file(self):
-        """ !!  a changer d'emplacement
+    def read_file(self, file):
+        """
         read intruction of program and set self.prog
         :rtype: object
         """
-        with open(FILE_facto_tailrec, "r") as f:
+
+        with open(file, "r") as f:
             for line in f.readlines():
                 buffer = line.split()
+                label = buffer[0].replace(':', '')
 
-                # dans le cas où on a bien (label, instructions)
                 if len(buffer) == 3:
-                    label = buffer[0].replace(':', '')
-                    instructions = buffer[1:]
-                    self.prog = np.insert(self.prog, self.prog.size, (label, instructions))
-                # sinon on insert (None, instructions) None correspont a l'absence du label
-                elif len(buffer) > 0:
-                    self.prog = np.insert(self.prog, self.prog.size, (None, buffer))
-                # dans la cas la line est vide
+                    self.prog = np.append(self.prog,
+                                          LineInstruction(label=label, command=buffer[1], args=buffer[2]))
+                elif len(buffer) == 2:
+                    self.prog = np.append(self.prog, LineInstruction(command=buffer[0], args=buffer[1]))
+                elif len(buffer) == 1:
+                    # self.prog = np.insert(self.prog, self.prog.size, LineInstruction(command=buffer[0]))
+                    self.prog = np.append(self.prog, LineInstruction(command=buffer[0]))
+
                 else:
                     print('eroor: ', buffer)
+
+
+miniZamVM = MiniZamVM()
+
+miniZamVM.read_file(FILE_fun1)
+miniZamVM.run()

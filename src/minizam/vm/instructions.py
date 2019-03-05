@@ -117,8 +117,11 @@ class Prim(Instruction):
 
 class Branch(Instruction):
     def execute(self, state):
+        print("Begin Branch")
         label = state.fetch()
         state.set_pc(state.get_position(label))
+
+        print("End Branch")
 
 
 class BranchIfNot(Instruction):
