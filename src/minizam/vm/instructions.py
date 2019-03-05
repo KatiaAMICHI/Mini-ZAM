@@ -178,8 +178,6 @@ class Closure(Instruction):
 
 
 class ClosureRec(Instruction):
-    # acc prend la valeur de la fermeture et cette valeur est empiler dans stack
-
     def execute(self, state):
         (label, n) = tuple(state.fetch())
         n = int(n)
