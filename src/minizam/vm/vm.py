@@ -7,7 +7,6 @@ FILE_facto_tailrec = r"../../../tests/appterm/facto_tailrec.txt"
 
 FILE_fun1 = r"../../../tests/unary_funs/fun1.txt"
 
-
 FILE_fun4 = r"../../../tests/unary_funs/fun4-nooptim.txt"
 
 
@@ -86,7 +85,9 @@ class LineInstruction:
 class MiniZamVM:
     instructions = {"CONST": Const(), "PRIM": Prim(), "BRANCH": Branch(), "BRANCHIFNOT": BranchIfNot(),
                     "PUSH": Push(), "POP": Pop(), "ACC": Acc(), "ENVACC": EnvAcc(),
-                    "CLOSURE": Closure(), "APPLY": Apply(), "RETURN": Return(), "STOP": Stop()}
+                    "CLOSURE": Closure(), "CLOSUREREC": ClosureRec(), "OFFSETCLOSURE": OffSetClosure(),
+                    "RESTART": ReStart(), "GRAB": Grab(), "APPLY": Apply(),
+                    "RETURN": Return(), "STOP": Stop()}
 
     def __init__(self):
         self.prog = np.array([])
@@ -94,6 +95,7 @@ class MiniZamVM:
         self.env = []  # un collection de mlvalue
         self.pc = 0  # pointeur de code vers l’instruction courante
         self.acc = MLValue.unit()
+        self.extra_args = 0  # le nombre d’arguments restant a appliquer à une fonction
 
     def set_accumulator(self, acc):
         assert isinstance(acc, MLValue)
@@ -101,6 +103,12 @@ class MiniZamVM:
 
     def get_accumulator(self):
         return self.acc
+
+    def get_extra_args(self):
+        return self.extra_args
+
+    def set_extra_args(self, extra_args):
+        self.extra_args = extra_args
 
     def pop(self, n=0):
         return self.stack.pop(n)

@@ -88,7 +88,6 @@ class _GtEq(_BinaryPrim):
 
 class _Print(_UnaryPrim):
     def execute(self, one):
-        print("one : ", chr(one.value))
         print(chr(one.value))
 
 
@@ -209,18 +208,65 @@ class Apply(Instruction):
 
         env = state.get_env()
         pc = state.get_pc() + 1
+        extra_args = state.get_extra_args()
 
-        state.push(args + [pc] + [env])
+        state.push(args + [pc] + [env] + [extra_args])
+
         acc = state.get_accumulator()
         state.change_context(acc)
+        state.set_extra_args(n - 1)
+
+
+class ReStart(Instruction):
+    def execute(self, state):
+        env = state.get_env()
+        n = len(env)
+
+        # pc prend la (n+1)-ième valeur de stack
+        state.set_pc(state.peek(n + 1))
+        # déplacer les éléements de env de 1 à n-1 dans la pile
+        state.pop(env[1:n - 1])
+        # env prend pour valeur de env[0]
+        state.set_env(env[0])
+        # extra args est incrémenté de (n − 1).
+        state.set_extra_args(state.get_extra_args() + (n - 1))
+
+
+class Grab(Instruction):
+    def execute(self, state):
+        n = int(state.fetch()[0])
+        extra_args = int(state.get_extra_args())
+
+        if extra_args >= n:
+            state.set_extra_args(extra_args - n)
+            state.increment_pc()
+        else:
+            # dépiler extra_args+1 éléments
+            ele_pop = state.pop(extra_args + 1)
+
+            # changer l'accumulateur
+            acc = MLValue.from_closure(state.get_pc() - 1, [state.get_env()] + ele_pop)
+            state.set_accumulator(acc)
+
+            # changer les valeurs extra args, pc, env
+            state.set_extra_args(state.pop())
+            state.set_pc(state.pop())
+            state.set_env(state.pop())
 
 
 class Return(Instruction):
     def execute(self, state):
         n = int(state.fetch()[0])
         args = state.pop(n)
-        state.set_pc(state.pop())
-        state.set_env(state.pop())
+        if state.get_extra_args() == 0:
+            # TODO on conserve le fonctionnement pr´ec´edent (mais on fera attention à
+            # bien se remettre dans le contexte de l’appelant en tenant compte des modifications apport´ees
+            # `a APPLY)
+            pass
+        else:
+            state.set_extra_args(state.get_extra_args() - 1)
+            state.set_env(state.pop())
+            state.set_pc(state.pop())
 
 
 class Stop(Instruction):
