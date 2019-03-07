@@ -25,12 +25,11 @@ class _Stack:
                :param n
            """
         if self.is_empty():
-            return None
+            return []
         elif n == 0:
             result = self.items[n]
             del self.items[n]
             return result
-        print("je suis la avec n : ", n)
         result = self.items[:n]
         del self.items[:n]
         return result
@@ -52,16 +51,7 @@ class LineInstruction:
     def __init__(self, label=None, command=None, args=None):
         self.label = label
         self.command = command
-        self.args = args
-
-    def get_label(self):
-        return self.label
-
-    def get_command(self):
-        return self.command
-
-    def get_args(self):
-        return self.args
+        self.args = args if args else []
 
     def __repr__(self):
         return "LineInstruction(Label : %s, Command : %s, args : %s)" % (self.label, self.command, self.args)
@@ -69,11 +59,13 @@ class LineInstruction:
     def __str__(self):
         return "(Label : %s, Command : %s, args : %s)" % (self.label, self.command, self.args)
 
+
+
     @staticmethod
     def build(line):
         label = line[0] if line[0] else None
         command = line[1]
-        args = line[2].replace(' ', '').split(",") if line[2] else None
+        args = line[2].replace(' ', '').split(",") if line[2] else []
         return LineInstruction(label, command, args)
 
 
@@ -83,11 +75,12 @@ class MiniZamVM:
                     "CLOSURE": Closure(), "APPLY": Apply(), "RETURN": Return(), "STOP": Stop()}
 
     def __init__(self):
-        self.prog = np.array([])
+        self.prog = []
         self.stack = _Stack()  # structure LIFO
         self.env = []  # un collection de mlvalue
         self.pc = 0  # pointeur de code vers l’instruction courante
         self.acc = MLValue.unit()
+        self.current_args = []
 
     def set_accumulator(self, acc):
         assert isinstance(acc, MLValue)
@@ -112,13 +105,13 @@ class MiniZamVM:
         self.pc = pc
 
     def increment_pc(self):
+        pc = self.pc
         self.pc += 1
+        self.current_args = self.prog[pc].args
+        return pc
 
     def get_pc(self):
         return self.pc
-
-    def increment_pc(self):
-        self.pc += 1
 
     def get_env(self, i=None):
         if i:
@@ -140,8 +133,7 @@ class MiniZamVM:
 
         :return: renvoie la position du label dans prog
         """
-
-        return list(self.prog).index(list(filter(lambda x: x.get_label() == label, self.prog))[0])
+        return self.prog.index(list(filter(lambda x: x.get_label() == label, self.prog))[0])
 
     def change_context(self, acc):
         """
@@ -155,7 +147,7 @@ class MiniZamVM:
 
         :return: renvoie les arguments de l'instruction courante
         """
-        return self.prog[self.pc].get_args()
+        return self.current_args
 
     def print_current_state(self):
         print('>> pc = ', self.pc, ' | accu = ', self.acc,
@@ -163,14 +155,14 @@ class MiniZamVM:
 
     def run(self):
         # TODO keep evaluating instruction respecting the pc register until encountering STOP
-        self.print_current_state()
-        while self.prog[self.pc].get_command() != 'STOP':
-            print("> current intruction : ", self.prog[self.pc], " <")
-            self.instructions[self.prog[self.pc].get_command()].execute(self)
-            self.print_current_state()
+        while True:
+            self.instructions[self.prog[self.increment_pc()].command].execute(self)
+
+    def shutdown(self):
+        exit()
 
     # TODO replace by using re
-    def read_file(self, file):
+    def load_file(self, file):
         """
         read intruction of program and set self.prog
         :rtype: object
@@ -178,10 +170,3 @@ class MiniZamVM:
         with open(FILE_fun1, "r") as f:
             lines = re.findall(r'(?:(\w+):)?\t(\w+)(.*)', f.read())
             self.prog = list(map(LineInstruction.build, lines))
-
-
-miniZamVM = MiniZamVM()
-
-miniZamVM.read_file(FILE_fun1)
-# pprint.pprint(miniZamVM.prog)
-miniZamVM.run()

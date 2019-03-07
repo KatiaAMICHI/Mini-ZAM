@@ -3,9 +3,34 @@ from .mlvalue import MLValue
 
 
 class Instruction(ABC):
+    def parse_args(self, args):
+        pass
+
     @abstractmethod
     def execute(self, state):
         pass
+
+    @staticmethod
+    def check_instance(value, clazz, message):
+        if not isinstance(value, clazz):
+            raise ValueError(str(value) + "is not an instance of " + message + ".")
+
+    @staticmethod
+    def check_mlvalue(value):
+        Instruction.check_instance(value, MLValue, "MLValue")
+
+    @staticmethod
+    def check_int(value):
+        Instruction.check_instance(value, int, "int")
+
+    @staticmethod
+    def check_str(value):
+        Instruction.check_instance(value, str, "string")
+
+    @staticmethod
+    def check_length(value, l, inst):
+        if len(value) != l:
+            raise ValueError(inst + " expect " + str(l) + " argument(s).")
 
 
 class _BinaryPrim(ABC):
@@ -22,7 +47,6 @@ class _UnaryPrim(ABC):
 
 class _Add(_BinaryPrim):
     def execute(self, one, two):
-        print(' one : ', one, ' - two : ', two)
         return one + two
 
 
@@ -93,13 +117,15 @@ class _Print(_UnaryPrim):
 
 ###########################################
 class Const(Instruction):
+
+    def parse_args(self, args):
+        Instruction.check_length(args, 1, "CONST")
+        return MLValue.from_int(int(args[0]))
+
     def execute(self, state):
-        print(" *** Begin CONST *** : ")
+        acc = self.parse_args(state.fetch())
 
-        state.set_accumulator(MLValue.from_int(int(state.fetch()[0])))
-        state.increment_pc()
-
-        print(" *** End CONST *** ")
+        state.set_accumulator(acc)
 
 
 class Prim(Instruction):
@@ -110,7 +136,7 @@ class Prim(Instruction):
     unary_op = {"not": _Not(), "print": _Print()}
 
     def execute(self, state):
-        op = state.fetch()[0]
+        op = state.fetch()
 
         if op in Prim.unary_op:
             x = Prim.unary_op[op].execute(state.get_accumulator())
@@ -118,93 +144,84 @@ class Prim(Instruction):
         elif op in Prim.binary_op:
             x = Prim.binary_op[op].execute(state.get_accumulator(), state.pop())
             state.set_accumulator(x)
-
-        state.increment_pc()
+        else:
+            raise ValueError(str(op) + "is not an operator.")
 
 
 class Branch(Instruction):
+
+    def parse_args(self, args):
+        Instruction.check_length(args, 1, "BRANCH")
+        return args[0]
+
     def execute(self, state):
-        print(" *** Begin Branch ***")
-
-        label = state.fetch()[0]
+        label = self.parse_args(state.fetch())
         state.set_pc(state.get_position(label))
-
-        print(" --- End Branch ---")
 
 
 class BranchIfNot(Instruction):
-    def execute(self, state):
-        print(" *** Begin BranchIfNot ***")
+    def parse_args(self, args):
+        Instruction.check_length(args, 1, "BRANCHIFNOT")
+        return args[0]
 
-        label = state.fetch()
+    def execute(self, state):
+        label = self.parse_args(state.fetch())
         acc = state.get_accumulator()
         if acc == 0:
             state.set_pc(state.get_position(label))
-        else:
-            state.increment_pc()
-
-        print(" --- End BranchIfNot ---")
 
 
 class Push(Instruction):
     def execute(self, state):
-        print(" *** Begin PUCH ***")
-
         state.push(state.get_accumulator())
-        state.increment_pc()
-
-        print(" --- End PUCH ---")
 
 
 class Pop(Instruction):
     def execute(self, state):
-        print(" *** Begin POP ***")
-
         state.pop()
-        state.increment_pc()
-
-        print(" --- End POP ---")
 
 
 class Acc(Instruction):
+    def parse_args(self, args):
+        Instruction.check_length(args, 1, "ACC")
+        return int(args[0])
+
     def execute(self, state):
-        print(" *** Begin ACC ***")
-
-        state.set_accumulator(state.peek(int(state.fetch()[0])))
-        state.increment_pc()
-
-        print(" --- End  ACC ---")
+        index = self.parse_args(state.fetch())
+        state.set_accumulator(state.peek(index))
 
 
 class EnvAcc(Instruction):
+    def parse_args(self, args):
+        Instruction.check_length(args, 1, "ENVACC")
+        return int(args[0])
+
     def execute(self, state):
-        print(" *** Begin ENVACC ***")
-
-        state.set_accumulator(state.get_env(state.fetch()))
-        state.increment_pc()
-
-        print(" --- End ENVACC ---")
+        index = self.parse_args(state.fetch())
+        state.set_accumulator(state.get_env(index))
 
 
 class Closure(Instruction):
+    def parse_args(self, args):
+        Instruction.check_length(args, 2, "CLOSURE")
+        return args[0], int(args[1])
 
     def execute(self, state):
-        print(" *** Begin CLOSURE ***")
+        (label, n) = self.parse_args(state.fetch())
 
-        (label, n) = tuple(state.fetch())
-        if int(n) > 0:
+        if n > 0:
             state.set_accumulator(MLValue.from_closure(state.get_position(label), state.pop(n)))
-            state.pop(int(n) - 1)
-        state.increment_pc()
-
-        print(" --- End CLOSURE ---")
+            state.pop(n - 1)
 
 
 class Apply(Instruction):
-    def execute(self, state):
-        print(" *** Begin APPLY ***")
+    def parse_args(self, args):
+        Instruction.check_length(args, 1, "APPLY")
+        return int(args[0])
 
-        n = int(state.fetch()[0])
+    def execute(self, state):
+        n = self.parse_args(state.fetch())
+
         args = state.pop(n)
         env = state.get_env()
         pc = state.get_pc() + 1
@@ -212,24 +229,22 @@ class Apply(Instruction):
         acc = state.get_accumulator()
         state.change_context(acc)
 
-        print(" --- End APPLY ---")
-
 
 class Return(Instruction):
-    def execute(self, state):
-        print(" *** Begin RETURN ***")
+    def parse_args(self, args):
+        Instruction.check_length(args, 1, "RETURN")
+        return int(args[0])
 
-        n = int(state.fetch()[0])
+    def execute(self, state):
+        n = self.parse_args(state.fetch())
+        Instruction.check_int(n)
+
         args = state.pop(n)
         state.set_pc(state.pop())
         state.set_env(state.pop())
-
         # state.change_context(args[-1])
-
-        print(" --- End RETURN ---")
 
 
 class Stop(Instruction):
     def execute(self, state):
-        print("STOP")
-        pass
+        state.shutdown()
