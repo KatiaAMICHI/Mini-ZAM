@@ -1,10 +1,13 @@
+import pprint
 import numpy as np
 import re
-import pprint
 from src.minizam.vm.instructions import *
 
 FILE_facto_tailrec = r"../../../tests/appterm/facto_tailrec.txt"
+
 FILE_fun1 = r"../../../tests/unary_funs/fun1.txt"
+
+FILE_fun4 = r"../../../tests/unary_funs/fun4-nooptim.txt"
 
 
 class _Stack:
@@ -46,6 +49,9 @@ class _Stack:
     def size(self):
         return len(self.items)
 
+    def __repr__(self):
+        return "_Stack(items : %s )" % (self.items)
+
 
 class LineInstruction:
     def __init__(self, label=None, command=None, args=None):
@@ -70,7 +76,9 @@ class LineInstruction:
 class MiniZamVM:
     instructions = {"CONST": Const(), "PRIM": Prim(), "BRANCH": Branch(), "BRANCHIFNOT": BranchIfNot(),
                     "PUSH": Push(), "POP": Pop(), "ACC": Acc(), "ENVACC": EnvAcc(),
-                    "CLOSURE": Closure(), "APPLY": Apply(), "RETURN": Return(), "STOP": Stop()}
+                    "CLOSURE": Closure(), "CLOSUREREC": ClosureRec(), "OFFSETCLOSURE": OffSetClosure(),
+                    "RESTART": ReStart(), "GRAB": Grab(), "APPLY": Apply(),
+                    "RETURN": Return(), "STOP": Stop()}
 
     def __init__(self):
         self.prog = []
@@ -79,12 +87,19 @@ class MiniZamVM:
         self.pc = 0  # pointeur de code vers l’instruction courante
         self.acc = MLValue.unit()
         self.current_args = []
+        self.extra_args = 0  # le nombre d’arguments restant a appliquer à une fonction
 
     def set_accumulator(self, acc):
         self.acc = acc
 
     def get_accumulator(self):
         return self.acc
+
+    def get_extra_args(self):
+        return self.extra_args
+
+    def set_extra_args(self, extra_args):
+        self.extra_args = extra_args
 
     def pop(self, n=0):
         return self.stack.pop(n)
@@ -147,8 +162,9 @@ class MiniZamVM:
         return self.current_args
 
     def print_current_state(self):
-        print('>> pc = ', self.pc, ' | accu = ', self.acc,
-              " | size(stack) = ", self.stack.size(), " | env = ", self.env, " <<<")
+        print('                                           '
+              '    -> pc=', self.pc, ' | accu=', self.acc,
+              " | size(stack)=", self.stack, " | env=", self.env, " <<<")
 
     def run(self):
         # TODO keep evaluating instruction respecting the pc register until encountering STOP
@@ -160,10 +176,11 @@ class MiniZamVM:
 
     # TODO replace by using re
     def load_file(self, file):
+
         """
         read intruction of program and set self.prog
         :rtype: object
         """
-        with open(FILE_fun1, "r") as f:
+        with open(file, "r") as f:
             lines = re.findall(r'(?:(\w+):)?\t(\w+)(.*)', f.read())
             self.prog = list(map(LineInstruction.build, lines))
