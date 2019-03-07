@@ -129,6 +129,10 @@ class Const(Instruction):
 
 
 class Prim(Instruction):
+    def parse_args(self, args):
+        Instruction.check_length(args, 1, "PRIM")
+        return args[0]
+
     binary_op = {"+": _Add(), "-": _Minus(), "*": _Mul(), "/": _Div(),
                  "or": _Or(), "and": _And(),
                  "<>": _NotEq(), "=": _Eq(), "<": _Lt(), "<=": _LtEq(), ">": _Gt(), ">=": _GtEq()}
@@ -136,7 +140,7 @@ class Prim(Instruction):
     unary_op = {"not": _Not(), "print": _Print()}
 
     def execute(self, state):
-        op = state.fetch()
+        op = self.parse_args(state.fetch())
 
         if op in Prim.unary_op:
             x = Prim.unary_op[op].execute(state.get_accumulator())

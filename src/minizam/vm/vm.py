@@ -37,7 +37,7 @@ class _Stack:
     def push(self, elements):
         if not isinstance(elements, list):
             elements = [elements]
-            pass
+
         self.items = elements + self.items
 
     def is_empty(self):
@@ -58,8 +58,6 @@ class LineInstruction:
 
     def __str__(self):
         return "(Label : %s, Command : %s, args : %s)" % (self.label, self.command, self.args)
-
-
 
     @staticmethod
     def build(line):
@@ -83,7 +81,6 @@ class MiniZamVM:
         self.current_args = []
 
     def set_accumulator(self, acc):
-        assert isinstance(acc, MLValue)
         self.acc = acc
 
     def get_accumulator(self):
@@ -95,7 +92,7 @@ class MiniZamVM:
     def push(self, elements):
         self.stack.push(elements)
 
-    def peek(self, i):
+    def peek(self, i=0):
         return self.stack.peek(i)
 
     def is_empty(self):
