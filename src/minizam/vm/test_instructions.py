@@ -39,3 +39,10 @@ class PrimTest(unittest.TestCase):
         self.assertEqual(self.vm.peek(), MLValue.from_int(2))
 
         # TODO check when in acc there is a closure and expect error typeError / or in Stack
+
+    def test_minus(self):
+        self.vm.current_args = ["-"]
+        MiniZamVM.instructions["PRIM"].execute(self.vm)
+        self.assertEqual(MLValue.from_int(5), self.vm.get_accumulator())
+        self.assertEqual(self.vm.stack.size(), 2)
+        self.assertEqual(self.vm.peek(), MLValue.from_int(2))
