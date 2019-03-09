@@ -240,7 +240,8 @@ class ClosureRec(Instruction):
 
 class OffSetClosure(Instruction):
     def execute(self, state):
-        state.set_accumulator(MLValue.from_closure(state.get_env(0), state.get_env()))
+        state.set_accumulator(
+            MLValue.from_closure(state.get_env(0), state.get_env()))
 
 
 class Apply(Instruction):
@@ -256,7 +257,7 @@ class Apply(Instruction):
         env = state.get_env()
         pc = state.get_pc() + 1
         extra_args = state.get_extra_args()
-
+        # TODO change pc to MLValue(pc)
         state.push(args + [pc] + [env] + [extra_args])
 
         acc = state.get_accumulator()
@@ -298,7 +299,7 @@ class Grab(Instruction):
             acc = MLValue.from_closure(state.get_pc() - 1, [state.get_env()] + ele_pop)
             state.set_accumulator(acc)
 
-            # changer les valeurs extra args, pc, env
+            # changer les valeurs extra_args, pc, env
             state.set_extra_args(state.pop())
             state.set_pc(state.pop())
             state.set_env(state.pop())
@@ -307,16 +308,15 @@ class Grab(Instruction):
 class Return(Instruction):
     def execute(self, state):
         n = int(state.fetch()[0])
-        args = state.pop(n)
+        state.pop(n)
         if state.get_extra_args() == 0:
-            # TODO on conserve le fonctionnement pr´ec´edent (mais on fera attention à
-            # bien se remettre dans le contexte de l’appelant en tenant compte des modifications apport´ees
-            # `a APPLY)
-            pass
+            state.set_pc(state.pop(0))
+            state.set_env(state.pop(0))
+            state.pop(0)
         else:
             state.set_extra_args(state.get_extra_args() - 1)
-            state.set_env(state.pop())
-            state.set_pc(state.pop())
+            state.set_env(state.get_accumulator().value[1])
+            state.set_pc(state.get_accumulator().value[0])
 
 
 class Stop(Instruction):

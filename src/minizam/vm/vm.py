@@ -135,8 +135,9 @@ class MiniZamVM:
         return self.pc
 
     def get_env(self, i=None):
-        if i:
+        if isinstance(i,int):
             assert i < len(self.env)
+            print(">>>>> : ", self.env[i])
             return self.env[i]
         return self.env
 
