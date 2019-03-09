@@ -24,17 +24,21 @@ class _Stack:
 
     def pop(self, n=0):
         """
-               Renvoie et retire les n premier element de la queue
-               :param n
-           """
+           Renvoie et retire les n premier element de la queue
+           :param n
+       """
         if self.is_empty():
             return []
         elif n == 0:
             result = self.items[n]
             del self.items[n]
             return result
-        result = self.items[:n]
-        del self.items[:n]
+        elif n > len(self.items):
+            result = self.items[:len(self.items)]
+            del self.items[:len(self.items)]
+        else:
+            result = self.items[:n]
+            del self.items[:n]
         return result
 
     def push(self, elements):
@@ -89,6 +93,9 @@ class MiniZamVM:
         self.current_args = []
         self.extra_args = 0  # le nombre d’arguments restant a appliquer à une fonction
 
+    def get_stack(self):
+        return self.stack
+
     def set_accumulator(self, acc):
         self.acc = acc
 
@@ -108,6 +115,7 @@ class MiniZamVM:
         self.stack.push(elements)
 
     def peek(self, i=0):
+        print("je sui la !!! la vlaeur de stack :", self.stack.peek(i))
         return self.stack.peek(i)
 
     def is_empty(self):
@@ -119,7 +127,8 @@ class MiniZamVM:
     def increment_pc(self):
         pc = self.pc
         self.pc += 1
-        self.current_args = self.prog[pc].args
+        if self.prog:
+            self.current_args = self.prog[pc].args
         return pc
 
     def get_pc(self):

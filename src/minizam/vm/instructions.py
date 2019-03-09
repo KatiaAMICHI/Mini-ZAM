@@ -268,15 +268,18 @@ class ReStart(Instruction):
     def execute(self, state):
         env = state.get_env()
         n = len(env)
+        print("taile de env : ", n)
 
-        # pc prend la (n+1)-ième valeur de stack
-        state.set_pc(state.peek(n + 1))
-        # déplacer les éléements de env de 1 à n-1 dans la pile
-        state.pop(env[1:n - 1])
-        # env prend pour valeur de env[0]
-        state.set_env(env[0])
+        # déplacer les éléments de env de 1 à n-1 dans la pile
+        state.push(env[1:n - 1])
+
         # extra args est incrémenté de (n − 1).
         state.set_extra_args(state.get_extra_args() + (n - 1))
+
+        # env prend pour valeur de env[0]
+        state.set_env(env[0])
+
+        state.increment_pc()
 
 
 class Grab(Instruction):
