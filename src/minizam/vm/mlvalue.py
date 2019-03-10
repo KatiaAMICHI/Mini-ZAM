@@ -8,6 +8,12 @@ class MLValue:
         self.value = None
 
     @staticmethod
+    def from_bloc(bloc):
+        value = MLValue()
+        value.value = bloc
+        return value
+
+    @staticmethod
     def from_closure(pc, env):
         value = MLValue()
         value.value = (pc, env)
@@ -130,3 +136,4 @@ class MLValue:
             return True
         else:
             raise TypeError(str(self) + " is not an instance of bool")
+

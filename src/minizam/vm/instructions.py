@@ -305,6 +305,114 @@ class Grab(Instruction):
             state.set_env(state.pop())
 
 
+class MakeBlock(Instruction):
+    """
+    Crée un bloc de taille n,
+        ajoute un element dans le bloc et change la valeur de l'accumulateur si n >0
+    """
+
+    def execute(self, state):
+        n = int(state.fetch()[0])
+        if n > 0:
+            accu = state.get_accumulator()
+            state.add_to_bloc(accu)
+            state.pop(n - 1)
+            state.set_accumulator(MLValue.from_bloc(state.get_bloc()))
+        state.increment_pc()
+
+
+class GetField(Instruction):
+    """
+    Met dans l’accumulateur la n-ième valeur du bloc contenu dans accu.
+    """
+
+    def execute(self, state):
+        n = int(state.fetch()[0])
+        val = state.set_accumulator().value
+        state.set_accumulator(val[n])
+        state.increment_pc()
+
+
+class GetVectItem(Instruction):
+    """
+    met dans l’accumulateur la taille du bloc situé dans accu.
+    """
+
+    def execute(self, state):
+        len_bloc = len(state.get_accumulator().value)
+        state.set_accumulator(len_bloc)
+        state.increment_pc()
+
+
+class VectLength(Instruction):
+    """
+    Dépile un élément n de stack puis met dans accu la n-i`ème valeur du
+    bloc situé dans l’accumulateur
+    """
+
+    def execute(self, state):
+        # dépile un élément n de stack
+        n = state.pop()
+        # récupére bloc dans l’accumulateur
+        val_bloc = state.get_accumulator().value
+        # met dans accu la n-i`ème valeur du bloc
+        state.set_accumulator(val_bloc[n])
+
+        state.increment_pc()
+
+
+class SetField(Instruction):
+    def execute(self, state):
+        n = int(state.fetch()[0])
+
+        # dépiler une valeur dans la stack
+        val_stack = state.pop()
+
+        # récupérer le bloc dans l'accumulateur sous forme de liste
+        bloc = list(state.get_accumulator().value)
+        # TODO es ce qu'on écrase la n'ième valeur du bloc ??
+        # mettre la valeur dépilée dans la n'ième valeur du bloc
+        bloc[n] = val_stack
+
+        state.increment_pc()
+
+
+class SetVectItem(Instruction):
+    def execute(self, state):
+        # dépiler deux valeurs dans la stack
+        n = state.pop()
+        v = state.pop()
+
+        # récupérer le bloc dans l'accumulateur sous forme de liste
+        bloc = list(state.get_accumulator().value)
+        # TODO es ce qu'on écrase la n'ième valeur du bloc ??
+        # mettre la valeur dépilée dans la n'ième valeur du bloc
+        bloc[n] = v
+
+        state.set_accumulator(MLValue.unit())
+
+        state.increment_pc()
+
+
+class Assign(Instruction):
+    """
+    Remplace le n-ième élément de la pile par la valeur de accu,
+    L'accumulator prend la valeur ()
+    """
+
+    def execute(self, state):
+        n = int(state.fetch()[0])
+        acc = state.get_accumulator()
+
+        # remplacer le n-ième élément de la pile par la valeur de accu
+        state.set_stack(n, acc)
+
+        # mettre la valeur () dans l'accumulateur
+        state.set_accumulator(MLValue.unit())
+
+        state.increment_pc()
+
+
 class Return(Instruction):
     def execute(self, state):
         n = int(state.fetch()[0])
