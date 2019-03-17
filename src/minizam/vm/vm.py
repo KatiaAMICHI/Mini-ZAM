@@ -24,17 +24,21 @@ class _Stack:
 
     def pop(self, n=0):
         """
-               Renvoie et retire les n premier element de la queue
-               :param n
-           """
+           Renvoie et retire les n premier element de la queue
+           :param n
+       """
         if self.is_empty():
             return []
         elif n == 0:
             result = self.items[n]
             del self.items[n]
             return result
-        result = self.items[:n]
-        del self.items[:n]
+        elif n > len(self.items):
+            result = self.items[:len(self.items)]
+            del self.items[:len(self.items)]
+        else:
+            result = self.items[:n]
+            del self.items[:n]
         return result
 
     def push(self, elements):
@@ -42,6 +46,9 @@ class _Stack:
             elements = [elements]
 
         self.items = elements + self.items
+
+    def set_element(self, index, value):
+        self.items[len(self.items)-index] = value
 
     def is_empty(self):
         return self.items == []
@@ -77,7 +84,9 @@ class MiniZamVM:
     instructions = {"CONST": Const(), "PRIM": Prim(), "BRANCH": Branch(), "BRANCHIFNOT": BranchIfNot(),
                     "PUSH": Push(), "POP": Pop(), "ACC": Acc(), "ENVACC": EnvAcc(),
                     "CLOSURE": Closure(), "CLOSUREREC": ClosureRec(), "OFFSETCLOSURE": OffSetClosure(),
-                    "RESTART": ReStart(), "GRAB": Grab(), "APPLY": Apply(),
+                    "RESTART": ReStart(), "GRAB": Grab(), "APPLY": Apply(), "MAKEBLOCK": MakeBlock(),
+                    "GETFIELD": GetField, "VECTLENGTH": VectLength, "GETVECTITEM": GetVectItem,
+                    "SETFIELD": SetField, "SETVECTITEM": SetVectItem, "ASSIGN": Assign,
                     "RETURN": Return(), "STOP": Stop()}
 
     def __init__(self):
@@ -88,6 +97,19 @@ class MiniZamVM:
         self.acc = MLValue.unit()
         self.current_args = []
         self.extra_args = 0  # le nombre d’arguments restant a appliquer à une fonction
+        self.bloc = tuple()
+
+    def get_bloc(self):
+        return self.bloc
+
+    def add_to_bloc(self, element):
+        self.bloc.append(element)
+
+    def get_stack(self):
+        return self.stack
+
+    def set_stack(self, index, value):
+        return self.stack.set_element(index, value)
 
     def set_accumulator(self, acc):
         self.acc = acc
@@ -108,6 +130,7 @@ class MiniZamVM:
         self.stack.push(elements)
 
     def peek(self, i=0):
+        print("je sui la !!! la vlaeur de stack :", self.stack.peek(i))
         return self.stack.peek(i)
 
     def is_empty(self):
@@ -119,15 +142,17 @@ class MiniZamVM:
     def increment_pc(self):
         pc = self.pc
         self.pc += 1
-        self.current_args = self.prog[pc].args
+        if self.prog:
+            self.current_args = self.prog[pc].args
         return pc
 
     def get_pc(self):
         return self.pc
 
     def get_env(self, i=None):
-        if i:
+        if isinstance(i, int):
             assert i < len(self.env)
+            print(">>>>> : ", self.env[i])
             return self.env[i]
         return self.env
 

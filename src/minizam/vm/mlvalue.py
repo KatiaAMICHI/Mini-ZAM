@@ -8,6 +8,12 @@ class MLValue:
         self.value = None
 
     @staticmethod
+    def from_bloc(bloc):
+        value = MLValue()
+        value.value = bloc
+        return value
+
+    @staticmethod
     def from_closure(pc, env):
         value = MLValue()
         value.value = (pc, env)
@@ -133,34 +139,3 @@ class MLValue:
             return True
 
         raise TypeError(str(self) + " is not an instance of bool.")
-
-    # def __and__(self, other):
-    #     if self is MLValue._FALSE and other is MLValue._FALSE:
-    #         return False
-    #
-    #     if self is MLValue._TRUE and other is MLValue._FALSE:
-    #         return False
-    #
-    #     if self is MLValue._FALSE and other is MLValue._TRUE:
-    #         return False
-    #
-    #     if self is MLValue._TRUE and other is MLValue._TRUE:
-    #         return True
-    #
-    #     raise TypeError(str(self) + " and " + str(other) + " cannot be evaluated.")
-    #
-    # def __or__(self, other):
-    #     print("or")
-    #     if self is MLValue._FALSE or other is MLValue._FALSE:
-    #         return False
-    #
-    #     if self is MLValue._TRUE or other is MLValue._FALSE:
-    #         return True
-    #
-    #     if self is MLValue._FALSE or other is MLValue._TRUE:
-    #         return True
-    #
-    #     if self is MLValue._TRUE or other is MLValue._TRUE:
-    #         return True
-    #
-    #     raise TypeError(str(self) + " or " + str(other) + " cannot be evaluated.")
