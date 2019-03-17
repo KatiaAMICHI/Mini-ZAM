@@ -1,7 +1,7 @@
 import pprint
 import numpy as np
 import re
-from src.minizam.vm.instructions import *
+from .instructions import *
 
 FILE_facto_tailrec = r"../../../tests/appterm/facto_tailrec.txt"
 

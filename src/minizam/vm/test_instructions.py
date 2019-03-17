@@ -28,35 +28,39 @@ class ConstTest(unittest.TestCase):
 class PrimTest(unittest.TestCase):
     def setUp(self):
         self.vm = MiniZamVM()
-        self.vm.push([MLValue.from_int(5), MLValue.from_int(2), MLValue.from_int(4)])
+        values = list(map(MLValue.from_int, [5, 2, 4]))
+        self.vm.push(values)
         self.vm.set_accumulator(MLValue.from_int(10))
+
+    def test_arithmetic_ops(self):
+        arithmetic = {"+": 15, "-": 5, "*": 150, "/": 2}
+        # "or", "and",
+        # "<>", "=", "<", "<=", ">", ">="
+        for op in arithmetic:
+            self.do_operation(op, arithmetic[op])
+            self.check_stack()
+            self.check_type()
+
+    def test_logical_ops(self):
+        self.do_operation("+", 15)
+        self.check_stack()
+        self.check_type()
 
     def do_operation(self, op, result):
         self.vm.current_args = [op]
         MiniZamVM.instructions["PRIM"].execute(self.vm)
         self.assertEqual(MLValue.from_int(result), self.vm.get_accumulator())
+
+    def check_stack(self):
         self.assertEqual(self.vm.stack.size(), 2)
         self.assertEqual(self.vm.peek(), MLValue.from_int(2))
 
-    def test_add_minus_mul_div(self):
-        self.do_operation("+", 15)
-        self.do_operation("-", 5)
-        self.do_operation("*", 150)
-        self.do_operation("/", 2)
+    def check_type(self):
+        self.vm.push(MLValue.from_closure(1, []))
+        with self.assertRaises(TypeError):
+            MiniZamVM.instructions["PRIM"].execute(self.vm)
 
-        # TODO check when in acc there is a closure and expect error typeError / or in Stack
-
-    def test_or_and(self):
-        pass
-
-    def test_notEq_eq_lt_gt_ltEq_gtEq(self):
-        pass
-
-
-class BranchTest(unittest.TestCase):
-    pass
-
-
-class BranchIfNotTest(unittest.TestCase):
-    pass
+        self.vm.set_accumulator(MLValue.from_closure(1, []))
+        with self.assertRaises(TypeError):
+            MiniZamVM.instructions["PRIM"].execute(self.vm)
 

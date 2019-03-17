@@ -4,7 +4,7 @@ from .mlvalue import MLValue
 
 class Instruction(ABC):
     def parse_args(self, args):
-        pass
+        return args;
 
     @abstractmethod
     def execute(self, state):

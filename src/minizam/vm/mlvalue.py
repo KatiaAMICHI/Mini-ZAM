@@ -1,6 +1,6 @@
 class MLValue:
-    _TRUE = True
-    _FALSE = False
+    _TRUE = None
+    _FALSE = None
     _UNIT = None
 
     def __init__(self):
@@ -24,21 +24,24 @@ class MLValue:
 
     @staticmethod
     def true():
-        value = MLValue()
-        value.value = MLValue._TRUE
-        return value
+        if not MLValue._TRUE:
+            MLValue._TRUE = MLValue()
+            MLValue._TRUE.value = 1
+        return MLValue._TRUE
 
     @staticmethod
     def false():
-        value = MLValue()
-        value.value = MLValue._FALSE
-        return value
+        if not MLValue._FALSE:
+            MLValue._FALSE = MLValue()
+            MLValue._FALSE.value = 0
+        return MLValue._FALSE
 
     @staticmethod
     def unit():
-        value = MLValue()
-        value.value = MLValue._UNIT
-        return value
+        if not MLValue._UNIT:
+            MLValue._UNIT = MLValue()
+            MLValue._UNIT.value = None
+        return MLValue._UNIT
 
     def _check(self, other):
         if not isinstance(self.value, int):
@@ -49,21 +52,21 @@ class MLValue:
             raise TypeError(str(other.value) + " is not an instance of int")
 
     def __repr__(self):
-        if self.value is MLValue._FALSE:
+        if self is MLValue._FALSE:
             return "False"
-        if self.value is MLValue._TRUE:
+        if self is MLValue._TRUE:
             return "True"
-        if self.value is MLValue._UNIT:
+        if self is MLValue._UNIT:
             return "()"
 
         return "mlvalue(Value: %s)" % str(self.value)
 
     def __str__(self):
-        if self.value is MLValue._FALSE:
+        if self is MLValue._FALSE:
             return "False"
-        if self.value is MLValue._TRUE:
+        if self is MLValue._TRUE:
             return "True"
-        if self.value is MLValue._UNIT:
+        if self is MLValue._UNIT:
             return "()"
         return "mlvalue(Value: %s)" % str(self.value)
 
@@ -81,7 +84,7 @@ class MLValue:
 
     def __truediv__(self, other):
         self._check(other)
-        return MLValue.from_int(self.value / other.value)
+        return MLValue.from_int(int(self.value / other.value))
 
     def __eq__(self, other):
         if self.value == other.value:
@@ -124,9 +127,40 @@ class MLValue:
             return MLValue.false()
 
     def __bool__(self):
-        if self.value is MLValue._FALSE:
+        if self.value == 0:
             return False
-        elif self.value is MLValue._TRUE:
+        if self.value == 1:
             return True
-        else:
-            raise TypeError(str(self) + " is not an instance of bool")
+
+        raise TypeError(str(self) + " is not an instance of bool.")
+
+    # def __and__(self, other):
+    #     if self is MLValue._FALSE and other is MLValue._FALSE:
+    #         return False
+    #
+    #     if self is MLValue._TRUE and other is MLValue._FALSE:
+    #         return False
+    #
+    #     if self is MLValue._FALSE and other is MLValue._TRUE:
+    #         return False
+    #
+    #     if self is MLValue._TRUE and other is MLValue._TRUE:
+    #         return True
+    #
+    #     raise TypeError(str(self) + " and " + str(other) + " cannot be evaluated.")
+    #
+    # def __or__(self, other):
+    #     print("or")
+    #     if self is MLValue._FALSE or other is MLValue._FALSE:
+    #         return False
+    #
+    #     if self is MLValue._TRUE or other is MLValue._FALSE:
+    #         return True
+    #
+    #     if self is MLValue._FALSE or other is MLValue._TRUE:
+    #         return True
+    #
+    #     if self is MLValue._TRUE or other is MLValue._TRUE:
+    #         return True
+    #
+    #     raise TypeError(str(self) + " or " + str(other) + " cannot be evaluated.")
