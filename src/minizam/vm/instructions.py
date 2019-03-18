@@ -11,26 +11,14 @@ class Instruction(ABC):
         pass
 
     @staticmethod
-    def check_instance(value, clazz, message):
-        if not isinstance(value, clazz):
-            raise ValueError(str(value) + "is not an instance of " + message + ".")
-
-    @staticmethod
-    def check_mlvalue(value):
-        Instruction.check_instance(value, MLValue, "MLValue")
-
-    @staticmethod
-    def check_int(value):
-        Instruction.check_instance(value, int, "int")
-
-    @staticmethod
-    def check_str(value):
-        Instruction.check_instance(value, str, "string")
-
-    @staticmethod
     def check_length(value, l, inst):
         if len(value) != l:
             raise ValueError(inst + " expect " + str(l) + " argument(s).")
+
+    @staticmethod
+    def check_bool(value):
+        if not (value is MLValue.true()) and not (value is MLValue.false()):
+            raise TypeError(str(value) + " is not an instance of bool.")
 
 
 class _BinaryPrim(ABC):
@@ -67,17 +55,32 @@ class _Div(_BinaryPrim):
 
 class _And(_BinaryPrim):
     def execute(self, one, two):
-        return one and two
+
+        Instruction.check_bool(one)
+        Instruction.check_bool(two)
+        if one and two:
+            return MLValue.true()
+
+        return MLValue.false()
 
 
 class _Or(_BinaryPrim):
     def execute(self, one, two):
-        return one or two
+        Instruction.check_bool(one)
+        Instruction.check_bool(two)
+        if one or two:
+            return MLValue.true()
+
+        return MLValue.false()
 
 
 class _Not(_UnaryPrim):
     def execute(self, one):
-        return not one
+        Instruction.check_bool(one)
+
+        if one is MLValue.true():
+            return MLValue.false()
+        return MLValue.true()
 
 
 class _Eq(_BinaryPrim):
@@ -171,7 +174,7 @@ class BranchIfNot(Instruction):
         label = self.parse_args(state.fetch())
 
         acc = state.get_accumulator()
-        if acc.value == 0:
+        if acc is MLValue.false():
             state.set_pc(state.get_position(label))
 
 

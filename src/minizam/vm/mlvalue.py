@@ -30,21 +30,21 @@ class MLValue:
 
     @staticmethod
     def true():
-        if not MLValue._TRUE:
+        if MLValue._TRUE is None:
             MLValue._TRUE = MLValue()
             MLValue._TRUE.value = 1
         return MLValue._TRUE
 
     @staticmethod
     def false():
-        if not MLValue._FALSE:
+        if MLValue._FALSE is None:
             MLValue._FALSE = MLValue()
             MLValue._FALSE.value = 0
         return MLValue._FALSE
 
     @staticmethod
     def unit():
-        if not MLValue._UNIT:
+        if MLValue._UNIT is None:
             MLValue._UNIT = MLValue()
             MLValue._UNIT.value = None
         return MLValue._UNIT

@@ -28,14 +28,11 @@ class _Stack:
            :param n
        """
         if self.is_empty():
-            return []
+            return None
         elif n == 0:
             result = self.items[n]
             del self.items[n]
             return result
-        elif n > len(self.items):
-            result = self.items[:len(self.items)]
-            del self.items[:len(self.items)]
         else:
             result = self.items[:n]
             del self.items[:n]
@@ -48,7 +45,7 @@ class _Stack:
         self.items = elements + self.items
 
     def set_element(self, index, value):
-        self.items[len(self.items)-index] = value
+        self.items[len(self.items) - index] = value
 
     def is_empty(self):
         return self.items == []
@@ -130,7 +127,6 @@ class MiniZamVM:
         self.stack.push(elements)
 
     def peek(self, i=0):
-        print("je sui la !!! la vlaeur de stack :", self.stack.peek(i))
         return self.stack.peek(i)
 
     def is_empty(self):
@@ -151,8 +147,6 @@ class MiniZamVM:
 
     def get_env(self, i=None):
         if isinstance(i, int):
-            assert i < len(self.env)
-            print(">>>>> : ", self.env[i])
             return self.env[i]
         return self.env
 
@@ -170,7 +164,9 @@ class MiniZamVM:
 
         :return: renvoie la position du label dans prog
         """
-        return self.prog.index(list(filter(lambda x: x.get_label() == label, self.prog))[0])
+        inst = next(filter(lambda x: x.label == label, self.prog))
+
+        return self.prog.index(inst)
 
     def change_context(self, acc):
         """
@@ -192,14 +188,12 @@ class MiniZamVM:
               " | size(stack)=", self.stack, " | env=", self.env, " <<<")
 
     def run(self):
-        # TODO keep evaluating instruction respecting the pc register until encountering STOP
         while True:
             self.instructions[self.prog[self.increment_pc()].command].execute(self)
 
     def shutdown(self):
         exit()
 
-    # TODO replace by using re
     def load_file(self, file):
 
         """
