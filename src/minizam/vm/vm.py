@@ -1,13 +1,6 @@
-import pprint
-import numpy as np
 import re
 from .instructions import *
-
-FILE_facto_tailrec = r"../../../tests/appterm/facto_tailrec.txt"
-
-FILE_fun1 = r"../../../tests/unary_funs/fun1.txt"
-
-FILE_fun4 = r"../../../tests/unary_funs/fun4-nooptim.txt"
+import sys
 
 
 class _Stack:
@@ -28,7 +21,7 @@ class _Stack:
            :param n
        """
         if self.is_empty():
-            return None
+            return []
         elif n == 0:
             result = self.items[n]
             del self.items[n]
@@ -124,6 +117,9 @@ class MiniZamVM:
         return self.stack.pop(n)
 
     def push(self, elements):
+        # if isinstance(elements, list):
+        # print(elements)
+
         self.stack.push(elements)
 
     def peek(self, i=0):
@@ -185,7 +181,7 @@ class MiniZamVM:
     def print_current_state(self):
         print('                                           '
               '    -> pc=', self.pc, ' | accu=', self.acc,
-              " | size(stack)=", self.stack, " | env=", self.env, " <<<")
+              " | size(stack)=", self.stack.size(), " | env=", self.env, " <<<")
 
     def run(self):
         while True:

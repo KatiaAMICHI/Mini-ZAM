@@ -55,7 +55,6 @@ class _Div(_BinaryPrim):
 
 class _And(_BinaryPrim):
     def execute(self, one, two):
-
         Instruction.check_bool(one)
         Instruction.check_bool(two)
         if one and two:
@@ -215,36 +214,39 @@ class Closure(Instruction):
 
     def execute(self, state):
         (label, n) = self.parse_args(state.fetch())
-        vals_pop = state.pop(n - 1)
-        vals_pop = (vals_pop if isinstance(vals_pop, list) else [vals_pop])
+        # vals_pop = state.pop(n - 1)
+        # vals_pop = (vals_pop if isinstance(vals_pop, list) else [vals_pop])
 
-        acc = state.get_accumulator()
         if n > 0:
-            state.push(acc)
-
-        state.set_accumulator(MLValue.from_closure(state.get_position(label), vals_pop))
+            state.push(state.get_accumulator())
+            state.set_accumulator(MLValue.from_closure(state.get_position(label), state.pop(n)))
+        else:
+            state.set_accumulator(MLValue.from_closure(state.get_position(label), []))
 
 
 class ClosureRec(Instruction):
+    def parse_args(self, args):
+        Instruction.check_length(args, 2, "CLOSURE")
+        return args[0], int(args[1])
+
     def execute(self, state):
-        (label, n) = tuple(state.fetch())
-        n = int(n)
-        vals_pop = state.pop(n - 1)
-        vals_pop = (vals_pop if isinstance(vals_pop, list) else [vals_pop])
+        (label, n) = self.parse_args(state.fetch())
+        # vals_pop = state.pop(n - 1)
+        # vals_pop = (vals_pop if isinstance(vals_pop, list) else [vals_pop])
 
-        acc = state.get_accumulator()
+        pc = state.get_position(label)
         if n > 0:
-            state.push(acc)
+            state.push(state.get_accumulator())
+            state.set_accumulator(MLValue.from_closure(pc, [pc] + state.pop(n)))
+        else:
+            state.set_accumulator(MLValue.from_closure(pc, [pc]))
 
-        acc = MLValue.from_closure(state.get_position(label), [state.get_position(label)] + vals_pop)
-        state.set_accumulator(acc)
-        state.push(acc)
+        state.push(state.get_accumulator())
 
 
 class OffSetClosure(Instruction):
     def execute(self, state):
-        state.set_accumulator(
-            MLValue.from_closure(state.get_env(0), state.get_env()))
+        state.set_accumulator(MLValue.from_closure(state.get_env(0), state.get_env()))
 
 
 class Apply(Instruction):
@@ -258,10 +260,9 @@ class Apply(Instruction):
         args = state.pop(n)
 
         env = state.get_env()
-        pc = state.get_pc() + 1
+        pc = state.get_pc()
         extra_args = state.get_extra_args()
-        # TODO change pc to MLValue(pc)
-        state.push(args + [pc] + [env] + [extra_args])
+        state.push(args + [pc, env, extra_args])
 
         acc = state.get_accumulator()
         state.change_context(acc)
