@@ -164,12 +164,12 @@ class MiniZamVM:
 
         return self.prog.index(inst)
 
-    def change_context(self, acc):
+    def change_context(self):
         """
         Change le context de pc et env à partir de la valeur de acc
         """
-        self.pc = acc.value[0]
-        self.env = acc.value[1]
+        self.pc = self.acc.value[0]
+        self.env = self.acc.value[1]
 
     def fetch(self):
         """

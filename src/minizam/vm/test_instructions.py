@@ -287,9 +287,50 @@ class EnvAccTest(unittest.TestCase):
 class ClosureTest(unittest.TestCase):
     def setUp(self):
         self.vm = MiniZamVM()
+        self.vm.push(list(map(MLValue.from_int, [1, 2, 5])))
+        lines = [("", "CONST", "1"), ("", "PRIM", "print"),
+                 ("", "PUSH", ""), ("L", "CONST", "2"), ("", "PUSH", "")]
+        self.vm.pc = 2
+        self.vm.prog = list(map(LineInstruction.build, lines))
 
-    def test_off_set_closure(self):
-        pass
+    def test_execute(self):
+        self.vm.current_args = ["L", "0"]
+        MiniZamVM.instructions["CLOSURE"].execute(self.vm)
+        self.assertEqual(MLValue.from_closure(3, []), self.vm.get_accumulator())
+        self.assertEqual(3, self.vm.stack.size())
+
+        self.vm.set_accumulator(MLValue.false())
+        self.vm.current_args = ["L", "2"]
+        MiniZamVM.instructions["CLOSURE"].execute(self.vm)
+        self.assertEqual(MLValue.from_closure(3, [MLValue.false(), MLValue.from_int(1)]), self.vm.get_accumulator())
+        self.assertEqual(2, self.vm.stack.size())
+
+
+class ClosureRecTest(unittest.TestCase):
+    def setUp(self):
+        self.vm = MiniZamVM()
+        self.vm.push(list(map(MLValue.from_int, [1, 2, 5])))
+        lines = [("", "CONST", "1"), ("", "PRIM", "print"),
+                 ("", "PUSH", ""), ("L", "CONST", "2"), ("", "PUSH", "")]
+        self.vm.pc = 2
+        self.vm.prog = list(map(LineInstruction.build, lines))
+
+    def test_execute(self):
+        self.vm.current_args = ["L", "0"]
+        MiniZamVM.instructions["CLOSUREREC"].execute(self.vm)
+        self.assertEqual(MLValue.from_closure(3, [3]), self.vm.get_accumulator())
+        self.assertEqual(4, self.vm.stack.size())
+
+        # undo last push by CLOSUREREC
+        self.vm.pop()
+
+        # setup acc
+        self.vm.set_accumulator(MLValue.false())
+        # test with n > 0
+        self.vm.current_args = ["L", "2"]
+        MiniZamVM.instructions["CLOSUREREC"].execute(self.vm)
+        self.assertEqual(MLValue.from_closure(3, [3, MLValue.false(), MLValue.from_int(1)]), self.vm.get_accumulator())
+        self.assertEqual(3, self.vm.stack.size())
 
 
 class OffSetClosureTest(unittest.TestCase):
@@ -300,14 +341,29 @@ class OffSetClosureTest(unittest.TestCase):
 
     def test_off_set_closure(self):
         MiniZamVM.instructions["OFFSETCLOSURE"].execute(self.vm)
-        self.assertEqual(self.vm.get_accumulator(),
-                         MLValue.from_closure(self.env_int[0], self.env_int))
+        self.assertEqual(self.vm.get_accumulator(), MLValue.from_closure(self.env_int[0], self.env_int))
 
 
 class ApplyTest(unittest.TestCase):
-    # TODO Apply
-    def test_extra_args_gt__n(self):
-        pass
+    def setUp(self):
+        self.vm = MiniZamVM()
+        self.vm.push(list(map(MLValue.from_int, [1, 2, 5])))
+        self.vm.pc = 15
+        self.env = list(map(MLValue.from_int, [5, 3, 6]))
+        self.vm.env = self.env
+        self.vm.set_accumulator(MLValue.from_closure(5, []))
+
+    def test_execute(self):
+        self.vm.current_args = ["2"]
+        MiniZamVM.instructions["APPLY"].execute(self.vm)
+        self.assertEqual([], self.vm.env)
+        self.assertEqual(5, self.vm.pc)
+
+        expected = list(map(MLValue.from_int, [1, 2])) + [15, self.env, 0]
+        # nargs=2 + pc + env + extra_args  == 5
+        self.assertEqual(expected, self.vm.pop(5))
+
+        self.assertEqual(1, self.vm.extra_args)
 
 
 class ReturnTest(unittest.TestCase):

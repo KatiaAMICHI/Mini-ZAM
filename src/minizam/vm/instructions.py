@@ -214,8 +214,6 @@ class Closure(Instruction):
 
     def execute(self, state):
         (label, n) = self.parse_args(state.fetch())
-        # vals_pop = state.pop(n - 1)
-        # vals_pop = (vals_pop if isinstance(vals_pop, list) else [vals_pop])
 
         if n > 0:
             state.push(state.get_accumulator())
@@ -231,8 +229,6 @@ class ClosureRec(Instruction):
 
     def execute(self, state):
         (label, n) = self.parse_args(state.fetch())
-        # vals_pop = state.pop(n - 1)
-        # vals_pop = (vals_pop if isinstance(vals_pop, list) else [vals_pop])
 
         pc = state.get_position(label)
         if n > 0:
@@ -264,8 +260,7 @@ class Apply(Instruction):
         extra_args = state.get_extra_args()
         state.push(args + [pc, env, extra_args])
 
-        acc = state.get_accumulator()
-        state.change_context(acc)
+        state.change_context()
         state.set_extra_args(n - 1)
 
 
@@ -273,7 +268,6 @@ class ReStart(Instruction):
     def execute(self, state):
         env = state.get_env()
         n = len(env)
-        print("taile de env : ", n)
 
         # déplacer les éléments de env de 1 à n-1 dans la pile
         state.push(env[1:n - 1])
