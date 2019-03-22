@@ -168,6 +168,7 @@ class MiniZamVM:
         """
         Change le context de pc et env à partir de la valeur de acc
         """
+
         self.pc = self.acc.value[0]
         self.env = self.acc.value[1]
 
@@ -179,15 +180,17 @@ class MiniZamVM:
         return self.current_args
 
     def print_current_state(self):
-        print('                                           '
-              '    -> pc=', self.pc, ' | accu=', self.acc,
-              " | size(stack)=", self.stack.size(), " | env=", self.env, " <<<")
+        print('\taccu =', self.acc,
+              "\n\tstack=", self.stack.items, end="\n")
 
     def run(self):
         while True:
+            # print(self.prog[self.pc].command, 'pc =', self.pc)
             self.instructions[self.prog[self.increment_pc()].command].execute(self)
+            # self.print_current_state()
 
     def shutdown(self):
+        print("acc = ", self.acc)
         exit()
 
     def load_file(self, file):
