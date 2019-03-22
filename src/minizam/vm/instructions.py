@@ -286,7 +286,6 @@ class Grab(Instruction):
 
         if extra_args >= n:
             state.set_extra_args(extra_args - n)
-            # state.increment_pc()
         else:
             # dépiler extra_args+1 éléments
             ele_pop = state.pop(extra_args + 1)
@@ -314,7 +313,6 @@ class MakeBlock(Instruction):
             state.add_to_bloc(accu)
             state.pop(n - 1)
             state.set_accumulator(MLValue.from_bloc(state.get_bloc()))
-        state.increment_pc()
 
 
 class GetField(Instruction):
@@ -326,7 +324,6 @@ class GetField(Instruction):
         n = int(state.fetch()[0])
         val = state.set_accumulator().value
         state.set_accumulator(val[n])
-        state.increment_pc()
 
 
 class GetVectItem(Instruction):
@@ -337,7 +334,6 @@ class GetVectItem(Instruction):
     def execute(self, state):
         len_bloc = len(state.get_accumulator().value)
         state.set_accumulator(len_bloc)
-        state.increment_pc()
 
 
 class VectLength(Instruction):
@@ -354,7 +350,6 @@ class VectLength(Instruction):
         # met dans accu la n-i`ème valeur du bloc
         state.set_accumulator(val_bloc[n])
 
-        state.increment_pc()
 
 
 class SetField(Instruction):
@@ -370,7 +365,6 @@ class SetField(Instruction):
         # mettre la valeur dépilée dans la n'ième valeur du bloc
         bloc[n] = val_stack
 
-        state.increment_pc()
 
 
 class SetVectItem(Instruction):
@@ -387,7 +381,6 @@ class SetVectItem(Instruction):
 
         state.set_accumulator(MLValue.unit())
 
-        state.increment_pc()
 
 
 class Assign(Instruction):
@@ -406,7 +399,6 @@ class Assign(Instruction):
         # mettre la valeur () dans l'accumulateur
         state.set_accumulator(MLValue.unit())
 
-        state.increment_pc()
 
 
 class Return(Instruction):
