@@ -38,7 +38,7 @@ class _Stack:
         self.items = elements + self.items
 
     def set_element(self, index, value):
-        self.items[len(self.items) - index] = value
+        self.items[len(self.items) - index - 1] = value
 
     def is_empty(self):
         return self.items == []
@@ -75,8 +75,8 @@ class MiniZamVM:
                     "PUSH": Push(), "POP": Pop(), "ACC": Acc(), "ENVACC": EnvAcc(),
                     "CLOSURE": Closure(), "CLOSUREREC": ClosureRec(), "OFFSETCLOSURE": OffSetClosure(),
                     "RESTART": ReStart(), "GRAB": Grab(), "APPLY": Apply(), "MAKEBLOCK": MakeBlock(),
-                    "GETFIELD": GetField, "VECTLENGTH": VectLength, "GETVECTITEM": GetVectItem,
-                    "SETFIELD": SetField, "SETVECTITEM": SetVectItem, "ASSIGN": Assign,
+                    "GETFIELD": GetField(), "VECTLENGTH": VectLength(), "GETVECTITEM": GetVectItem(),
+                    "SETFIELD": SetField(), "SETVECTITEM": SetVectItem(), "ASSIGN": Assign(),
                     "RETURN": Return(), "STOP": Stop()}
 
     def __init__(self):
@@ -87,7 +87,6 @@ class MiniZamVM:
         self.acc = MLValue.unit()
         self.current_args = []
         self.extra_args = 0  # le nombre d’arguments restant a appliquer à une fonction
-        self.bloc = tuple()
 
     def get_bloc(self):
         return self.bloc
@@ -117,9 +116,6 @@ class MiniZamVM:
         return self.stack.pop(n)
 
     def push(self, elements):
-        # if isinstance(elements, list):
-        # print(elements)
-
         self.stack.push(elements)
 
     def peek(self, i=0):
@@ -149,11 +145,13 @@ class MiniZamVM:
     def set_env(self, env):
         self.env = env
 
+    """
     def pop_env(self, n=0):
         # TODO a supp !
         result = self.env[n]
         del self.env[n]
         return result
+    """
 
     def get_position(self, label):
         """
@@ -180,14 +178,16 @@ class MiniZamVM:
         return self.current_args
 
     def print_current_state(self):
-        print('\taccu =', self.acc,
-              "\n\tstack=", self.stack.items, end="\n")
+        print('          '
+              '    -> pc=', self.pc, ' | accu=', self.acc,
+              " | stack=", self.stack.items, " | env=", self.env, " <-")
 
     def run(self):
         while True:
             # print(self.prog[self.pc].command, 'pc =', self.pc)
             self.instructions[self.prog[self.increment_pc()].command].execute(self)
-            # self.print_current_state()
+            print(self.prog[self.pc - 1].command + str(self.current_args))
+            self.print_current_state()
 
     def shutdown(self):
         print("acc = ", self.acc)

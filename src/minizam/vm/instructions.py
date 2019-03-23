@@ -84,6 +84,8 @@ class _Not(_UnaryPrim):
 
 class _Eq(_BinaryPrim):
     def execute(self, one, two):
+        if not isinstance(one, MLValue):
+            two = two.value
         return one == two
 
 
@@ -147,7 +149,8 @@ class Prim(Instruction):
             x = Prim.unary_op[op].execute(state.get_accumulator())
             state.set_accumulator(x)
         elif op in Prim.binary_op:
-            x = Prim.binary_op[op].execute(state.get_accumulator(), state.pop())
+            y = state.pop()
+            x = Prim.binary_op[op].execute(state.get_accumulator(), y)
             state.set_accumulator(x)
         else:
             raise ValueError(str(op) + "is not an operator.")
@@ -193,8 +196,11 @@ class Acc(Instruction):
         return int(args[0])
 
     def execute(self, state):
+        print(" je suis la !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         index = self.parse_args(state.fetch())
-        state.set_accumulator(state.peek(index))
+        a = state.peek(index)
+        print(">>>>>>>>>>>>>>>>>>>>>>>a : ", a)
+        state.set_accumulator(a)
 
 
 class EnvAcc(Instruction):
@@ -303,16 +309,19 @@ class Grab(Instruction):
 class MakeBlock(Instruction):
     """
     Crée un bloc de taille n,
-        ajoute un element dans le bloc et change la valeur de l'accumulateur si n >0
+        ajoute un element dans le bloc et change la valeur de l'accumulateur
+        si n >0
     """
 
     def execute(self, state):
         n = int(state.fetch()[0])
         if n > 0:
             accu = state.get_accumulator()
-            state.add_to_bloc(accu)
-            state.pop(n - 1)
-            state.set_accumulator(MLValue.from_bloc(state.get_bloc()))
+            block = [accu]
+            val_pop = state.pop(n - 1)
+            if len(val_pop) != 0:
+                block.append(val_pop)
+            state.set_accumulator(MLValue.from_block(block))
 
 
 class GetField(Instruction):
@@ -322,21 +331,21 @@ class GetField(Instruction):
 
     def execute(self, state):
         n = int(state.fetch()[0])
-        val = state.set_accumulator().value
+        val = state.get_accumulator().value
         state.set_accumulator(val[n])
 
 
-class GetVectItem(Instruction):
+class VectLength(Instruction):
     """
     met dans l’accumulateur la taille du bloc situé dans accu.
     """
 
     def execute(self, state):
-        len_bloc = len(state.get_accumulator().value)
-        state.set_accumulator(len_bloc)
+        len_block = len(state.get_accumulator().value)
+        state.set_accumulator(MLValue.from_int(len_block))
 
 
-class VectLength(Instruction):
+class GetVectItem(Instruction):
     """
     Dépile un élément n de stack puis met dans accu la n-i`ème valeur du
     bloc situé dans l’accumulateur
@@ -346,10 +355,12 @@ class VectLength(Instruction):
         # dépile un élément n de stack
         n = state.pop()
         # récupére bloc dans l’accumulateur
-        val_bloc = state.get_accumulator().value
+        val_block = state.get_accumulator().value
         # met dans accu la n-i`ème valeur du bloc
-        state.set_accumulator(val_bloc[n])
-
+        if isinstance(n, MLValue):
+            n = n.value
+        state.acc = val_block[n]
+        state.set_accumulator(val_block[n])
 
 
 class SetField(Instruction):
@@ -360,11 +371,12 @@ class SetField(Instruction):
         val_stack = state.pop()
 
         # récupérer le bloc dans l'accumulateur sous forme de liste
-        bloc = list(state.get_accumulator().value)
-        # TODO es ce qu'on écrase la n'ième valeur du bloc ??
+        block = list(state.get_accumulator().value)
         # mettre la valeur dépilée dans la n'ième valeur du bloc
-        bloc[n] = val_stack
+        block[n] = val_stack
 
+        state.get_accumulator().value[n] = val_stack
+        state.set_accumulator(MLValue.from_block(block))
 
 
 class SetVectItem(Instruction):
@@ -373,14 +385,12 @@ class SetVectItem(Instruction):
         n = state.pop()
         v = state.pop()
 
-        # récupérer le bloc dans l'accumulateur sous forme de liste
-        bloc = list(state.get_accumulator().value)
-        # TODO es ce qu'on écrase la n'ième valeur du bloc ??
-        # mettre la valeur dépilée dans la n'ième valeur du bloc
-        bloc[n] = v
-
-        state.set_accumulator(MLValue.unit())
-
+        if isinstance(n, MLValue):
+            n = n.value
+        print()
+        state.acc.value[n] = v
+        state.acc = MLValue.unit()
+        # state.set_accumulator(MLValue.unit())
 
 
 class Assign(Instruction):
