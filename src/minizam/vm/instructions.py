@@ -306,16 +306,20 @@ class Grab(Instruction):
 class MakeBlock(Instruction):
     """
     Crée un bloc de taille n,
-        ajoute un element dans le bloc et change la valeur de l'accumulateur si n >0
+        ajoute un element dans le bloc et change la valeur de l'accumulateur
+        si n >0
     """
 
     def execute(self, state):
         n = int(state.fetch()[0])
         if n > 0:
             accu = state.get_accumulator()
-            state.add_to_bloc(accu)
-            state.pop(n - 1)
-            state.set_accumulator(MLValue.from_bloc(state.get_bloc()))
+            block = [accu]
+            val_pop = state.pop(n - 1)
+            print("n : ", n)
+            print("val pop : ", val_pop)
+            block.append(val_pop)
+            state.set_accumulator(MLValue.from_block(block))
         state.increment_pc()
 
 
@@ -326,23 +330,25 @@ class GetField(Instruction):
 
     def execute(self, state):
         n = int(state.fetch()[0])
-        val = state.set_accumulator().value
+        val = state.get_accumulator().value
+        print("val : ", val)
+        print("val[n] : ", val[n])
         state.set_accumulator(val[n])
         state.increment_pc()
 
 
-class GetVectItem(Instruction):
+class VectLength(Instruction):
     """
     met dans l’accumulateur la taille du bloc situé dans accu.
     """
 
     def execute(self, state):
-        len_bloc = len(state.get_accumulator().value)
-        state.set_accumulator(len_bloc)
+        len_block = len(state.get_accumulator().value)
+        state.set_accumulator(MLValue.from_int(len_block))
         state.increment_pc()
 
 
-class VectLength(Instruction):
+class GetVectItem(Instruction):
     """
     Dépile un élément n de stack puis met dans accu la n-i`ème valeur du
     bloc situé dans l’accumulateur
@@ -352,9 +358,11 @@ class VectLength(Instruction):
         # dépile un élément n de stack
         n = state.pop()
         # récupére bloc dans l’accumulateur
-        val_bloc = state.get_accumulator().value
+        val_block = state.get_accumulator().value
         # met dans accu la n-i`ème valeur du bloc
-        state.set_accumulator(val_bloc[n])
+        if isinstance(n, MLValue):
+            n = n.value
+        state.set_accumulator(val_block[n])
 
         state.increment_pc()
 
@@ -362,15 +370,19 @@ class VectLength(Instruction):
 class SetField(Instruction):
     def execute(self, state):
         n = int(state.fetch()[0])
+        print("AVANT accu:", state.get_accumulator().value)
 
         # dépiler une valeur dans la stack
         val_stack = state.pop()
 
         # récupérer le bloc dans l'accumulateur sous forme de liste
-        bloc = list(state.get_accumulator().value)
-        # TODO es ce qu'on écrase la n'ième valeur du bloc ??
+        block = list(state.get_accumulator().value)
+        # TODO es ce qu'on écrase la n'ième valeur du bloc ou on fait un décalage ??
         # mettre la valeur dépilée dans la n'ième valeur du bloc
-        bloc[n] = val_stack
+        block[n] = val_stack
+        state.set_accumulator(MLValue.from_block(block))
+
+        print("accu fin :", state.get_accumulator().value)
 
         state.increment_pc()
 
@@ -385,10 +397,13 @@ class SetVectItem(Instruction):
         bloc = list(state.get_accumulator().value)
         # TODO es ce qu'on écrase la n'ième valeur du bloc ??
         # mettre la valeur dépilée dans la n'ième valeur du bloc
+        if isinstance(n, MLValue):
+            n = n.value
+
         bloc[n] = v
+        bloc.append(MLValue.unit())
 
-        state.set_accumulator(MLValue.unit())
-
+        state.set_accumulator(MLValue.from_block(bloc))
         state.increment_pc()
 
 

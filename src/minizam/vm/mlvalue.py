@@ -8,9 +8,9 @@ class MLValue:
         self.value = None
 
     @staticmethod
-    def from_bloc(bloc):
+    def from_block(block):
         value = MLValue()
-        value.value = bloc
+        value.value = block
         return value
 
     @staticmethod

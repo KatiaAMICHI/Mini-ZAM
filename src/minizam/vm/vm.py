@@ -38,7 +38,7 @@ class _Stack:
         self.items = elements + self.items
 
     def set_element(self, index, value):
-        self.items[len(self.items) - index] = value
+        self.items[len(self.items) - index - 1] = value
 
     def is_empty(self):
         return self.items == []
@@ -75,8 +75,8 @@ class MiniZamVM:
                     "PUSH": Push(), "POP": Pop(), "ACC": Acc(), "ENVACC": EnvAcc(),
                     "CLOSURE": Closure(), "CLOSUREREC": ClosureRec(), "OFFSETCLOSURE": OffSetClosure(),
                     "RESTART": ReStart(), "GRAB": Grab(), "APPLY": Apply(), "MAKEBLOCK": MakeBlock(),
-                    "GETFIELD": GetField, "VECTLENGTH": VectLength, "GETVECTITEM": GetVectItem,
-                    "SETFIELD": SetField, "SETVECTITEM": SetVectItem, "ASSIGN": Assign,
+                    "GETFIELD": GetField(), "VECTLENGTH": VectLength(), "GETVECTITEM": GetVectItem(),
+                    "SETFIELD": SetField(), "SETVECTITEM": SetVectItem(), "ASSIGN": Assign(),
                     "RETURN": Return(), "STOP": Stop()}
 
     def __init__(self):
@@ -149,11 +149,13 @@ class MiniZamVM:
     def set_env(self, env):
         self.env = env
 
+    """
     def pop_env(self, n=0):
         # TODO a supp !
         result = self.env[n]
         del self.env[n]
         return result
+    """
 
     def get_position(self, label):
         """

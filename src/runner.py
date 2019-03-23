@@ -1,6 +1,9 @@
-from minizam.vm.vm import MiniZamVM
+from src.minizam.vm.vm import MiniZamVM
 import sys
+
 if __name__ == '__main__':
     vm = MiniZamVM()
-    vm.load_file(sys.argv[1])
+    # arg = sys.argv[1]
+    arg = r'/home/katy/PycharmProjects/Mini-ZAM/tests/rec_funs/facto.txt'
+    vm.load_file(arg)
     vm.run()
