@@ -1,7 +1,7 @@
 class MLValue:
-    _TRUE = None
-    _FALSE = None
-    _UNIT = None
+    _TRUE = 1
+    _FALSE = 0
+    _UNIT = 0
 
     def __init__(self):
         super().__init__()

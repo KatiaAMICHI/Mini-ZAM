@@ -87,7 +87,6 @@ class MiniZamVM:
         self.acc = MLValue.unit()
         self.current_args = []
         self.extra_args = 0  # le nombre d’arguments restant a appliquer à une fonction
-        self.bloc = tuple()
 
     def get_bloc(self):
         return self.bloc
@@ -117,9 +116,6 @@ class MiniZamVM:
         return self.stack.pop(n)
 
     def push(self, elements):
-        # if isinstance(elements, list):
-        # print(elements)
-
         self.stack.push(elements)
 
     def peek(self, i=0):
@@ -181,13 +177,15 @@ class MiniZamVM:
         return self.current_args
 
     def print_current_state(self):
-        print('                                           '
+        print('          '
               '    -> pc=', self.pc, ' | accu=', self.acc,
-              " | size(stack)=", self.stack.size(), " | env=", self.env, " <<<")
+              " | stack=", self.stack.items, " | env=", self.env, " <-")
 
     def run(self):
         while True:
             self.instructions[self.prog[self.increment_pc()].command].execute(self)
+            print(self.prog[self.pc - 1].command + str(self.current_args))
+            self.print_current_state()
 
     def shutdown(self):
         exit()
