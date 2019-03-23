@@ -145,14 +145,6 @@ class MiniZamVM:
     def set_env(self, env):
         self.env = env
 
-    """
-    def pop_env(self, n=0):
-        # TODO a supp !
-        result = self.env[n]
-        del self.env[n]
-        return result
-    """
-
     def get_position(self, label):
         """
 
@@ -166,6 +158,7 @@ class MiniZamVM:
         """
         Change le context de pc et env à partir de la valeur de acc
         """
+
         self.pc = self.acc.value[0]
         self.env = self.acc.value[1]
 
@@ -183,11 +176,13 @@ class MiniZamVM:
 
     def run(self):
         while True:
+            # print(self.prog[self.pc].command, 'pc =', self.pc)
             self.instructions[self.prog[self.increment_pc()].command].execute(self)
             print(self.prog[self.pc - 1].command + str(self.current_args))
             self.print_current_state()
 
     def shutdown(self):
+        print("acc = ", self.acc)
         exit()
 
     def load_file(self, file):

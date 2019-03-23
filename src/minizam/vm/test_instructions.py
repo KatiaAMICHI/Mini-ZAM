@@ -553,22 +553,23 @@ class GetFieldTest(unittest.TestCase):
         self.accu_vals = [MLValue.from_int(1), MLValue.from_int(8), MLValue.from_int(4)]
 
         self.vm.current_args = [self.n]
-        self.vm.set_accumulator(MLValue.from_bloc(self.accu_vals))
+        self.vm.set_accumulator(MLValue.from_block(self.accu_vals))
 
     def test_get_field(self):
         MiniZamVM.instructions["GETFIELD"].execute(self.vm)
+        print(" >>> accu :", self.vm.get_accumulator())
         self.assertEqual(self.vm.get_accumulator(), self.accu_vals[self.n])
 
 
-class GetVectItemTest(unittest.TestCase):
+class VectLengthTest(unittest.TestCase):
     def setUp(self):
         self.vm = MiniZamVM()
 
         self.val_block = [MLValue.from_int(1), MLValue.from_closure(1, []), MLValue.from_int(10)]
 
-        self.vm.set_accumulator(self.val_block)
+        self.vm.set_accumulator(MLValue.from_block(self.val_block))
 
-    def test_get_vect_item(self):
+    def test_vect_length(self):
         MiniZamVM.instructions["VECTLENGTH"].execute(self.vm)
         self.assertEqual(self.vm.get_accumulator(), MLValue.from_int(len(self.val_block)))
 
@@ -579,7 +580,7 @@ class GetVectItemTest(unittest.TestCase):
 
         self.val_stack = [MLValue.from_int(1), MLValue.from_int(3), MLValue.from_int(36)]
         self.val_block = [MLValue.from_closure(1, []), MLValue.from_int(10)]
-        self.vm.set_accumulator(MLValue.from_bloc(self.val_block))
+        self.vm.set_accumulator(MLValue.from_block(self.val_block))
         self.vm.push(list(map(MLValue.from_int, [1, 3, 36])))
 
     def test_get_vect_item(self):
@@ -607,7 +608,7 @@ class SetFieldTest(unittest.TestCase):
         self.assertEqual(self.vm.get_accumulator().value, [self.val_block[0]] + [self.val_stack[0]])
 
 
-class SetFieldTest(unittest.TestCase):
+class SetVectItemTest(unittest.TestCase):
     def setUp(self):
         self.vm = MiniZamVM()
 
@@ -615,14 +616,16 @@ class SetFieldTest(unittest.TestCase):
         self.val_block = [MLValue.from_closure(1, []), MLValue.from_int(10)]
 
         self.vm.set_accumulator(MLValue.from_block(self.val_block))
+        self.vm.push(MLValue.from_block(self.val_block))
         self.vm.push(list(map(MLValue.from_int, [1, 3, 36])))
 
-    def test_set_field(self):
+    def test_set_vect_item(self):
         MiniZamVM.instructions["SETVECTITEM"].execute(self.vm)
+        self.val_block[1] = MLValue.from_int(3)
+        stack_res = self.val_stack[2::] + [MLValue.from_block(self.val_block)]
 
-        val_block_res = [MLValue.from_closure(1, []), MLValue.from_int(3), MLValue.unit()]
-
-        self.assertEqual(self.vm.get_accumulator().value, val_block_res)
+        self.assertEqual(self.vm.get_accumulator(), MLValue.unit())
+        self.assertEqual(self.vm.get_stack().items, stack_res)
 
 
 class AssignTest(unittest.TestCase):
@@ -643,4 +646,4 @@ class AssignTest(unittest.TestCase):
         self.val_stack[self.n] = MLValue.from_block(self.val_block)
 
         self.assertEqual(self.vm.get_stack().items, self.val_stack)
-        self.assertEqual(self.vm.get_accumulator().value, None)
+        self.assertEqual(self.vm.get_accumulator(), MLValue.unit())

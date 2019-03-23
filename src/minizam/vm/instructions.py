@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from .mlvalue import MLValue
 
 
+# TODO a un moment pc ne s'incremente pas du coup il fait une boucle infini
 class Instruction(ABC):
     def parse_args(self, args):
         return args;
@@ -149,8 +150,7 @@ class Prim(Instruction):
             x = Prim.unary_op[op].execute(state.get_accumulator())
             state.set_accumulator(x)
         elif op in Prim.binary_op:
-            y = state.pop()
-            x = Prim.binary_op[op].execute(state.get_accumulator(), y)
+            x = Prim.binary_op[op].execute(state.get_accumulator(), state.pop())
             state.set_accumulator(x)
         else:
             raise ValueError(str(op) + "is not an operator.")
@@ -276,15 +276,13 @@ class ReStart(Instruction):
         n = len(env)
 
         # déplacer les éléments de env de 1 à n-1 dans la pile
-        state.push(env[1:n - 1])
+        state.push(env[1:n])
 
         # extra args est incrémenté de (n − 1).
         state.set_extra_args(state.get_extra_args() + (n - 1))
 
         # env prend pour valeur de env[0]
         state.set_env(env[0])
-
-        state.increment_pc()
 
 
 class Grab(Instruction):
@@ -294,19 +292,18 @@ class Grab(Instruction):
 
         if extra_args >= n:
             state.set_extra_args(extra_args - n)
-            state.increment_pc()
         else:
             # dépiler extra_args+1 éléments
             ele_pop = state.pop(extra_args + 1)
 
             # changer l'accumulateur
-            acc = MLValue.from_closure(state.get_pc() - 1, [state.get_env()] + ele_pop)
+            acc = MLValue.from_closure(state.get_pc() - 2, [state.get_env()] + ele_pop)
             state.set_accumulator(acc)
 
             # changer les valeurs extra_args, pc, env
-            state.set_extra_args(state.pop())
             state.set_pc(state.pop())
             state.set_env(state.pop())
+            state.set_extra_args(state.pop())
 
 
 class MakeBlock(Instruction):
@@ -378,7 +375,8 @@ class SetField(Instruction):
         # mettre la valeur dépilée dans la n'ième valeur du bloc
         block[n] = val_stack
 
-        state.get_accumulator().value[n] = val_stack
+        #state.acc.value[n] = val_stack
+
         state.set_accumulator(MLValue.from_block(block))
 
 
@@ -391,10 +389,8 @@ class SetVectItem(Instruction):
         if isinstance(n, MLValue):
             n = n.value
 
-        print()
         state.acc.value[n] = v
-        state.acc = MLValue.unit()
-        # state.set_accumulator(MLValue.unit())
+        state.set_accumulator(MLValue.unit())
 
 
 class Assign(Instruction):
@@ -413,8 +409,6 @@ class Assign(Instruction):
         # mettre la valeur () dans l'accumulateur
         state.set_accumulator(MLValue.unit())
 
-        state.increment_pc()
-
 
 class Return(Instruction):
     def execute(self, state):
@@ -426,8 +420,20 @@ class Return(Instruction):
             state.pop(0)
         else:
             state.set_extra_args(state.get_extra_args() - 1)
-            state.set_env(state.get_accumulator().value[1])
-            state.set_pc(state.get_accumulator().value[0])
+            state.change_context()
+
+
+class AppTerm(Instruction):
+
+    def parse_args(self, args):
+        Instruction.check_length(args, 2, "APPTERM")
+        return int(args[0]), int(args[1])
+
+    def execute(self, state):
+        n, m = self.parse_args(state.fetch())
+        args = state.pop(n)
+        local_vars = state.pop(m - n)
+        state.push(args)
 
 
 class Stop(Instruction):

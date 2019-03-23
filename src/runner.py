@@ -8,7 +8,7 @@ PATH_dec = "/home/katy/PycharmProjects/Mini-ZAM/tests/block_values/"
 def run_main():
     for file in os.listdir(PATH_dec):
         vm = MiniZamVM()
-        arg = str(PATH_dec+file)
+        arg = str(PATH_dec + file)
         print("arg: ", arg)
         vm.load_file(arg)
         vm.run()

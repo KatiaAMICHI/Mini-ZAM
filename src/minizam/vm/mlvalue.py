@@ -1,7 +1,7 @@
 class MLValue:
-    _TRUE = 1
-    _FALSE = 0
-    _UNIT = 0
+    _TRUE = None
+    _FALSE = None
+    _UNIT = None
 
     def __init__(self):
         super().__init__()
@@ -46,7 +46,7 @@ class MLValue:
     def unit():
         if MLValue._UNIT is None:
             MLValue._UNIT = MLValue()
-            MLValue._UNIT.value = None
+            MLValue._UNIT.value = 0
         return MLValue._UNIT
 
     def _check(self, other):
