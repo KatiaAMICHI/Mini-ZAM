@@ -88,6 +88,7 @@ class MiniZamVM:
         self.current_args = []
         self.extra_args = 0  # le nombre d’arguments restant a appliquer à une fonction
         self.bloc = tuple()
+        self.trap_sp = None
 
     def get_bloc(self):
         return self.bloc

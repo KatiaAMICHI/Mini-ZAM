@@ -351,7 +351,6 @@ class VectLength(Instruction):
         state.set_accumulator(val_bloc[n])
 
 
-
 class SetField(Instruction):
     def execute(self, state):
         n = int(state.fetch()[0])
@@ -364,7 +363,6 @@ class SetField(Instruction):
         # TODO es ce qu'on écrase la n'ième valeur du bloc ??
         # mettre la valeur dépilée dans la n'ième valeur du bloc
         bloc[n] = val_stack
-
 
 
 class SetVectItem(Instruction):
@@ -382,7 +380,6 @@ class SetVectItem(Instruction):
         state.set_accumulator(MLValue.unit())
 
 
-
 class Assign(Instruction):
     """
     Remplace le n-ième élément de la pile par la valeur de accu,
@@ -398,7 +395,6 @@ class Assign(Instruction):
 
         # mettre la valeur () dans l'accumulateur
         state.set_accumulator(MLValue.unit())
-
 
 
 class Return(Instruction):
@@ -430,3 +426,30 @@ class AppTerm(Instruction):
 class Stop(Instruction):
     def execute(self, state):
         state.shutdown()
+
+
+class PushTrap(Instruction):
+    def parse_args(self, args):
+        Instruction.check_length(args, 1, "PUSHTRAP")
+        return args[0]
+
+    def execute(self, state):
+        label = self.parse_args(state.fetch())
+        state.push([state.extra_args, state.get_env(), state.trap_sp, state.find_position(label)])
+        state.trap_sp = state.peek()
+
+
+class PopTrap(Instruction):
+    def execute(self, state):
+        state.pop()
+        state.trap_sp = state.pop()
+        state.pop(2)
+
+
+class Raise(Instruction):
+
+    def execute(self, state):
+        if state.trap_sp is not None:
+            pass
+        else:
+            state.shutdown()
