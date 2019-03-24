@@ -84,8 +84,6 @@ class _Not(_UnaryPrim):
 
 class _Eq(_BinaryPrim):
     def execute(self, one, two):
-        if not isinstance(one, MLValue):
-            two = two.value
         return one == two
 
 
@@ -149,8 +147,7 @@ class Prim(Instruction):
             x = Prim.unary_op[op].execute(state.get_accumulator())
             state.set_accumulator(x)
         elif op in Prim.binary_op:
-            y = state.pop()
-            x = Prim.binary_op[op].execute(state.get_accumulator(), y)
+            x = Prim.binary_op[op].execute(state.get_accumulator(), state.pop())
             state.set_accumulator(x)
         else:
             raise ValueError(str(op) + "is not an operator.")
@@ -196,11 +193,10 @@ class Acc(Instruction):
         return int(args[0])
 
     def execute(self, state):
-        print(" je suis la !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         index = self.parse_args(state.fetch())
-        a = state.peek(index)
-        print(">>>>>>>>>>>>>>>>>>>>>>>a : ", a)
-        state.set_accumulator(a)
+        print("** state.peek(index) : ", index)
+        print("** state.peek(index) : ", len(state.stack.items))
+        state.set_accumulator(state.peek(index))
 
 
 class EnvAcc(Instruction):
@@ -319,8 +315,11 @@ class MakeBlock(Instruction):
             accu = state.get_accumulator()
             block = [accu]
             val_pop = state.pop(n - 1)
+            if not isinstance(val_pop, list):
+                print("print a sup!")
+                val_pop = [val_pop]
             if len(val_pop) != 0:
-                block.append(val_pop)
+                block = block + val_pop
             state.set_accumulator(MLValue.from_block(block))
 
 
@@ -332,6 +331,8 @@ class GetField(Instruction):
     def execute(self, state):
         n = int(state.fetch()[0])
         val = state.get_accumulator().value
+        print("n : ", n)
+        print("** val : ", state.get_accumulator())
         state.set_accumulator(val[n])
 
 
@@ -375,7 +376,8 @@ class SetField(Instruction):
         # mettre la valeur dépilée dans la n'ième valeur du bloc
         block[n] = val_stack
 
-        state.get_accumulator().value[n] = val_stack
+        # state.acc.value[n] = val_stack
+
         state.set_accumulator(MLValue.from_block(block))
 
 
@@ -387,10 +389,9 @@ class SetVectItem(Instruction):
 
         if isinstance(n, MLValue):
             n = n.value
-        print()
-        state.acc.value[n] = v
-        state.acc = MLValue.unit()
-        # state.set_accumulator(MLValue.unit())
+
+        state.acc.value = state.acc.value[0:n] + [v] + state.acc.value[(n+1)::]
+        state.set_accumulator(MLValue.unit())
 
 
 class Assign(Instruction):
@@ -405,10 +406,10 @@ class Assign(Instruction):
 
         # remplacer le n-ième élément de la pile par la valeur de accu
         state.set_stack(n, acc)
+        # state.stack.items[len(state.stack.items)-n-1] = MLValue.from_int(1111)
 
         # mettre la valeur () dans l'accumulateur
         state.set_accumulator(MLValue.unit())
-
 
 
 class Return(Instruction):
@@ -440,3 +441,31 @@ class AppTerm(Instruction):
 class Stop(Instruction):
     def execute(self, state):
         state.shutdown()
+
+
+class PushTrap(Instruction):
+    def parse_args(self, args):
+        Instruction.check_length(args, 1, "PUSHTRAP")
+        return args[0]
+
+    def execute(self, state):
+        label = self.parse_args(state.fetch())
+        state.push([state.extra_args, state.get_env(), state.trap_sp, state.get_position(label)])
+        state.trap_sp = state.peek()
+
+
+class PopTrap(Instruction):
+    def execute(self, state):
+        state.pop()
+        state.trap_sp = state.pop()
+        state.pop(2)
+
+
+class Raise(Instruction):
+
+    def execute(self, state):
+        if state.trap_sp is None:
+            state.shutdown()
+        else:
+            index = state.stack.items.index(state.trap_sp)
+            state.pop(index + 4)
