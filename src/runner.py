@@ -15,6 +15,6 @@ def run_main():
 
 if __name__ == '__main__':
     vm = MiniZamVM()
-    arg = PATH_dec + "liste.txt"
+    arg = PATH_dec + "couple.txt"
     vm.load_file(arg)
     vm.run()

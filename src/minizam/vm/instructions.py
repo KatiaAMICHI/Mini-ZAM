@@ -194,8 +194,6 @@ class Acc(Instruction):
 
     def execute(self, state):
         index = self.parse_args(state.fetch())
-        print("** state.peek(index) : ", index)
-        print("** state.peek(index) : ", len(state.stack.items))
         state.set_accumulator(state.peek(index))
 
 
@@ -316,7 +314,6 @@ class MakeBlock(Instruction):
             block = [accu]
             val_pop = state.pop(n - 1)
             if not isinstance(val_pop, list):
-                print("print a sup!")
                 val_pop = [val_pop]
             if len(val_pop) != 0:
                 block = block + val_pop
@@ -331,8 +328,6 @@ class GetField(Instruction):
     def execute(self, state):
         n = int(state.fetch()[0])
         val = state.get_accumulator().value
-        print("n : ", n)
-        print("** val : ", state.get_accumulator())
         state.set_accumulator(val[n])
 
 

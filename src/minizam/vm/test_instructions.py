@@ -415,69 +415,62 @@ class ReturnTest(unittest.TestCase):
         self.assertEqual(vm.get_env(), self.e)
 
 
+class ReStartTest(unittest.TestCase):
+    def setUp(self):
+        self.vm = MiniZamVM()
+        self.stack_init = [MLValue.from_int(10), MLValue.from_closure(1, []), MLValue.from_int(4)]
+        self.env_int = [MLValue.from_int(3), MLValue.from_int(7), MLValue.from_closure(2, []), MLValue.from_int(12)]
+        self.m = 3
+
+        self.vm.push(MLValue.from_int(4))
+        self.vm.push(MLValue.from_closure(1, []))
+        self.vm.push(MLValue.from_int(10))
+        self.vm.set_extra_args(self.m)
+        self.vm.set_env(self.env_int)
+        self.n = len(self.vm.get_env())
+
+    def test_restart(self):
+        MiniZamVM.instructions["RESTART"].execute(self.vm)
+
+        self.assertEqual(self.vm.get_stack().items, self.env_int[1:self.n] + self.stack_init)
+        self.assertEqual(self.vm.get_extra_args(), self.m + (self.n - 1))
+        self.assertEqual(self.vm.get_env(), self.env_int[0])
+
+
 class GrabTest(unittest.TestCase):
-    def test_extra_args_gt__n(self):
-        """
-        extra_args > n
-        """
+    def setUp(self):
         self.vm = MiniZamVM()
 
         self.m = 2
         self.c = 6
         self.n = 1
-
-        self.vm.set_extra_args(self.m)
-
-        self.vm.set_pc(self.c)
-
-        self.vm.current_args = [self.n]
-        self.vm.set_extra_args(self.m + self.n)
-
-        MiniZamVM.instructions["GRAB"].execute(self.vm)
-
-        self.assertEqual(self.vm.extra_args, self.m)
-
-        self.assertEqual(self.vm.pc, self.c + 1)
-
-    def test_extra_args_equal__n(self):
-        """
-        extra_args = n
-        """
-        self.vm = MiniZamVM()
-
-        self.m = 2
-        self.c = 6
-        self.n = 2
-
-        self.vm.set_extra_args(self.m)
-
-        self.vm.set_pc(self.c)
-
-        self.vm.current_args = [self.n]
-        self.vm.set_extra_args(self.m + self.n)
-
-        MiniZamVM.instructions["GRAB"].execute(self.vm)
-
-        self.assertEqual(self.vm.extra_args, self.m)
-
-        self.assertEqual(self.vm.pc, self.c + 1)
-
-    def test_extra_args_lt_n(self):
-        """
-            # extra_args < n
-        """
-        self.vm = MiniZamVM()
-
+        self.e = [MLValue.from_closure(2, [MLValue.from_int(11)])]
         self.stack_init = [MLValue.from_int(15), MLValue.from_closure(9, []), MLValue.from_int(22),
                            MLValue.from_int(10), MLValue.from_closure(1, []), MLValue.from_int(4)]
-        self.n = 3
-        self.m = 2
-        self.c = 6
-        self.e = [MLValue.from_closure(2, [MLValue.from_int(11)])]
 
-        # préparation de l'environnement
+        self.vm.set_extra_args(self.m)
+
+        self.vm.set_pc(self.c)
+
         self.vm.current_args = [self.n]
+        self.vm.set_extra_args(self.m + self.n)
 
+    def test_extra_args_gt__n(self):
+        # extra_args > n
+        MiniZamVM.instructions["GRAB"].execute(self.vm)
+        self.assertEqual(self.vm.extra_args, self.m)
+
+        # extra_args = n
+        self.setUp()
+        self.m = 2
+        MiniZamVM.instructions["GRAB"].execute(self.vm)
+        self.assertEqual(self.vm.extra_args, self.m)
+
+        # extra_args < n
+        self.setUp()
+        self.n = 3
+
+        self.vm.current_args = [self.n]
         self.vm.push(MLValue.from_int(4))
         self.vm.push(MLValue.from_closure(1, []))
         self.vm.push(MLValue.from_int(10))
@@ -492,37 +485,12 @@ class GrabTest(unittest.TestCase):
         MiniZamVM.instructions["GRAB"].execute(self.vm)
 
         self.assertEqual(self.vm.get_stack().items, self.stack_init[self.m + 4:])
-        self.assertEqual(self.vm.get_extra_args(), self.stack_init[self.m + 1])
-        self.assertEqual(self.vm.get_pc(), self.stack_init[self.m + 2])
-        self.assertEqual(self.vm.get_env(), self.stack_init[self.m + 3])
-        self.assertTrue(isinstance(self.vm.get_accumulator(), MLValue))
+        pc = self.stack_init[self.m + 1]
+        self.assertEqual(self.vm.get_pc(), pc)
+        self.assertEqual(self.vm.get_env(), self.stack_init[self.m + 2])
+        self.assertEqual(self.vm.get_extra_args(), self.stack_init[self.m + 3])
         self.assertEqual(self.vm.get_accumulator(),
-                         MLValue.from_closure(self.c - 1, [self.e] + self.stack_init[0:self.m + 1]))
-
-
-class ReStartTest(unittest.TestCase):
-    def setUp(self):
-        self.vm = MiniZamVM()
-        self.stack_init = [MLValue.from_int(10), MLValue.from_closure(1, []), MLValue.from_int(4)]
-        self.env_int = [MLValue.from_int(3), MLValue.from_int(7), MLValue.from_closure(2, []), MLValue.from_int(12)]
-        self.m = 3
-
-        self.vm.push(MLValue.from_int(4))
-        self.vm.push(MLValue.from_closure(1, []))
-        self.vm.push(MLValue.from_int(10))
-
-        self.vm.set_extra_args(self.m)
-
-        self.vm.set_env(self.env_int)
-
-        self.n = len(self.vm.get_env())
-
-    def test_restart(self):
-        MiniZamVM.instructions["RESTART"].execute(self.vm)
-
-        self.assertEqual(self.vm.get_stack().items, self.env_int[1:self.n - 1] + self.stack_init)
-        self.assertEqual(self.vm.get_extra_args(), self.m + (self.n - 1))
-        self.assertEqual(self.vm.get_env(), self.env_int[0])
+                         MLValue.from_closure(self.c - 2, [self.e] + self.stack_init[0:self.m + 1]))
 
 
 class MakeBlockTest(unittest.TestCase):
