@@ -77,7 +77,7 @@ class MiniZamVM:
                     "RESTART": ReStart(), "GRAB": Grab(), "APPLY": Apply(), "MAKEBLOCK": MakeBlock(),
                     "GETFIELD": GetField, "VECTLENGTH": VectLength, "GETVECTITEM": GetVectItem,
                     "SETFIELD": SetField, "SETVECTITEM": SetVectItem, "ASSIGN": Assign,
-                    "RETURN": Return(), "STOP": Stop()}
+                    "RETURN": Return(), "STOP": Stop(), "PUSHTRAP": PushTrap(), "POPTRAP": PopTrap(), "RAISE": Raise()}
 
     def __init__(self):
         self.prog = []
@@ -186,9 +186,9 @@ class MiniZamVM:
 
     def run(self):
         while True:
-            # print(self.prog[self.pc].command, 'pc =', self.pc)
+            print(self.prog[self.pc].command, 'pc =', self.pc)
             self.instructions[self.prog[self.increment_pc()].command].execute(self)
-            # self.print_current_state()
+            self.print_current_state()
 
     def shutdown(self):
         print("acc = ", self.acc)

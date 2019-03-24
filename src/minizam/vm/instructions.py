@@ -435,7 +435,7 @@ class PushTrap(Instruction):
 
     def execute(self, state):
         label = self.parse_args(state.fetch())
-        state.push([state.extra_args, state.get_env(), state.trap_sp, state.find_position(label)])
+        state.push([state.extra_args, state.get_env(), state.trap_sp, state.get_position(label)])
         state.trap_sp = state.peek()
 
 
@@ -449,7 +449,8 @@ class PopTrap(Instruction):
 class Raise(Instruction):
 
     def execute(self, state):
-        if state.trap_sp is not None:
-            pass
-        else:
+        if state.trap_sp is None:
             state.shutdown()
+        else:
+            index = state.stack.items.index(state.trap_sp)
+            state.pop(index + 4)
