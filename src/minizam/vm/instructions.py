@@ -185,7 +185,7 @@ class BranchIfNot(Instruction):
 
     def execute(self, vm, label):
         acc = vm.acc
-        if acc is MLValue.false():
+        if acc == MLValue.false():
             vm.pc = vm.get_position(label)
 
 
@@ -343,11 +343,12 @@ class MakeBlock(Instruction):
         if n > 0:
             acc = vm.acc
             block = [acc]
-            val_pop = vm.pop(n - 1)
-            if not isinstance(val_pop, list):
-                val_pop = [val_pop]
-            if len(val_pop) != 0:
-                block = block + val_pop
+            if len(block) < n:
+                val_pop = vm.pop(n - 1)
+                if not isinstance(val_pop, list):
+                    val_pop = [val_pop]
+                if len(val_pop) != 0:
+                    block = block + val_pop
             vm.acc = MLValue.from_block(block)
 
 
@@ -360,8 +361,7 @@ class GetField(Instruction):
         return ArgsParser(args, "GETFIELD").parse([int])
 
     def execute(self, vm, n):
-        val = vm.acc.value
-        vm.acc = val[n]
+        vm.acc = vm.acc.value[n]
 
 
 class VectLength(Instruction):
@@ -409,10 +409,7 @@ class SetField(Instruction):
         block = list(vm.acc.value)
         # mettre la valeur dépilée dans la n'ième valeur du bloc
         block[n] = val_stack
-
-        # vm.acc.value[n] = val_stack
-
-        vm.acc = MLValue.from_block(block)
+        vm.acc.value[n] = val_stack
 
 
 class SetVectItem(Instruction):
