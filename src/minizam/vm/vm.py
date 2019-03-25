@@ -252,8 +252,8 @@ class MiniZamVM:
         Impression du context du programme
         """
 
-        print('\tpc = ', self.pc, '\n\targs =', str(self.current_args), '\n\taccu =', self.acc, ' ',
-              "\n\tstack=", self.stack.items, end="\n")
+        print('\n\tpc = ', self.pc, '\n\n\taccu =', self.acc, ' ',
+              "\n\n\tstack=", self.stack.items, end="\n")
 
     def run(self):
         """
@@ -261,7 +261,7 @@ class MiniZamVM:
         """
 
         while True:
-            # print(self.prog[self.pc].command, ' pc =', self.pc)
+            # print('\n\\item',self.prog[self.pc].command, ' pc =', self.pc)
             inst = self.prog[self.increment_pc()]
             self.instructions[inst.command].execute(self, inst.args)
             # self.print_current_state()
