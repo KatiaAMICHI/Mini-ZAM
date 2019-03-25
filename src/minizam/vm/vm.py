@@ -3,23 +3,36 @@ from .instructions import *
 import sys
 
 
+# TODO changer acc -> accu
+
 class _Stack:
+    """
+    Class qui correspond à une LIFO
+    """
 
     def __init__(self):
+        """
+        initialisation de la pile à vide
+        """
+
         self.items = []
 
     def peek(self, i=0):
         """
-              Renvoie le i-ième element de la queue
-              :param i ith element in the queue
-          """
+        Renvoie le i-ième element de la queue
+
+        :param i ith element in the queue
+        """
+
         return self.items[i]
 
     def pop(self, n=0):
         """
-           Renvoie et retire les n premier element de la queue
-           :param n
-       """
+        Renvoie et retire les n premier element de la queue
+
+        :param n
+        """
+
         if self.is_empty():
             return []
         elif n == 0:
@@ -32,29 +45,67 @@ class _Stack:
         return result
 
     def push(self, elements):
+        """
+        Empile en tête de stack elements
+
+        :param elements : elements à ajouter dans la stack
+        """
+
         if not isinstance(elements, list):
             elements = [elements]
-
         self.items = elements + self.items
 
     def set_element(self, index, value):
+        """
+        Changement de la valeur à l'indice index dans la stack par value
+
+        :param index: qui correspond à un indice dans la pile
+        :param value: la nouvelle valeur à changer dans la pile
+        """
+
         if len(self.items) % 2 == 0:
             self.items[len(self.items) - index] = value
         else:
             self.items[len(self.items) - index - 1] = value
 
     def is_empty(self):
+        """
+        Vérifier si la pile est vide
+
+        :return: renvoie true si la pile est vide, false dans le cas contraire
+        """
+
         return self.items == []
 
     def size(self):
+        """
+        Méthode qui renvoie la taille de la pile
+
+        :return: renvoie la taille de la pile
+        """
         return len(self.items)
 
     def __repr__(self):
+        """
+
+        :return: renvoie le str des elements de la pile
+        """
         return "_Stack(items : %s )" % (self.items)
 
 
 class LineInstruction:
+    """
+    Class qui correspond à aux instructions du programme
+    """
+
     def __init__(self, label=None, command=None, args=None):
+        """
+        Initialisation de la ligne d'instruction
+
+        :param label: label de l'instruction
+        :param command: la commande à exécution
+        :param args: les arguments de la commande à exécution
+        """
         self.label = label
         self.command = command
         self.args = args if args else []
@@ -74,6 +125,10 @@ class LineInstruction:
 
 
 class MiniZamVM:
+    """
+    Class qui contient les fonctions principales de la machine virtuelle
+    """
+
     instructions = {"CONST": Const(), "PRIM": Prim(), "BRANCH": Branch(), "BRANCHIFNOT": BranchIfNot(),
                     "PUSH": Push(), "POP": Pop(), "ACC": Acc(), "ENVACC": EnvAcc(),
                     "CLOSURE": Closure(), "CLOSUREREC": ClosureRec(), "OFFSETCLOSURE": OffSetClosure(),
@@ -83,59 +138,127 @@ class MiniZamVM:
                     "RETURN": Return(), "STOP": Stop(), "PUSHTRAP": PushTrap(), "POPTRAP": PopTrap(), "RAISE": Raise()}
 
     def __init__(self):
+        """
+        Initialisation de la machine, la mémoire à des tableau et liste vide et pc à zéro
+        """
+
         self.prog = []
         self.stack = _Stack()  # structure LIFO
         self.env = []  # un collection de mlvalue
         self.pc = 0  # pointeur de code vers l’instruction courante
         self.acc = MLValue.unit()
-        self.current_args = []
         self.extra_args = 0  # le nombre d’arguments restant a appliquer à une fonction
-        self.bloc = tuple()
+        self.current_args = []
         self.trap_sp = None
 
-    def get_bloc(self):
-        return self.bloc
-
-    def add_to_bloc(self, element):
-        self.bloc.append(element)
-
     def get_stack(self):
+        """
+        Méthode qui renvoie la stack
+
+        :return: renvoie la stack
+        """
+
         return self.stack
 
     def set_stack(self, index, value):
+        """
+        Méthode qui modifier la valeur à l'indice stack par value
+
+        :param index: l'indice de la stack à modifier
+        :param value: la nouvelle valeur dans stack[index]
+        :return: renvoie la stack avec element modifier
+        """
+
         return self.stack.set_element(index, value)
 
     def set_accumulator(self, acc):
+        """
+        Méthode qui change la valeur de l'accumulateur
+
+        :param acc: la nouvelle valeur de l'accumulateur
+        """
+
         self.acc = acc
 
     def get_accumulator(self):
+        """
+        Méthode qui renvoie la valeur de l'accumulateur
+
+        :return: renvoie l'accumulateur
+        """
         return self.acc
 
     def get_extra_args(self):
+        """
+        Méthode qui renvoie la valeur du registre extra_args
+
+        :return: renvoie extra_args
+        """
+
         return self.extra_args
 
     def set_extra_args(self, extra_args):
+        """
+        Méthode qui change la valeur de extra_args
+
+        :param extra_args: la nouvelle valeur du registre extra_args
+        """
+
         self.extra_args = extra_args
 
     def pop(self, n=0):
+        """
+        Retire et renvoie l'élément en tête de stack
+
+        :param n: l'indice de l'élément à retirer
+        :return: renvoie l'élément retirer
+        """
+
         return self.stack.pop(n)
 
     def push(self, elements):
-        # if isinstance(elements, list):
-        # print(elements)
+        """
+        Empile en tête de stack un élément
+
+        :param elements: l'élément à empiler
+        """
 
         self.stack.push(elements)
 
     def peek(self, i=0):
+        """
+        Méthode qui renvoie la valeur de la stack à l'indice i
+
+        :param i: l'indice de l'élément à renvoyer
+        :return: renvoie la valeur à l'indice i de la stack
+        """
+
         return self.stack.peek(i)
 
     def is_empty(self):
+        """
+        Vérifier si la pile est vide
+
+        :return: renvoie true si la pile est vide, false dans le cas contraire
+        """
+
         return self.stack.is_empty()
 
     def set_pc(self, pc):
+        """
+        Changement de la valeur de pc
+
+        :param pc: la nouvelle valeur de pc
+        """
         self.pc = pc
 
     def increment_pc(self):
+        """
+        Incrementation de la valeur de pc
+
+        :return: renvoie la nouvelle valeur de pc
+        """
+
         pc = self.pc
         self.pc += 1
         if self.prog:
@@ -143,26 +266,41 @@ class MiniZamVM:
         return pc
 
     def get_pc(self):
+        """
+        Renvoie la valeur de pc
+
+        :return: renvoie la valeur de pc
+        """
+
         return self.pc
 
     def get_env(self, i=None):
+        """
+        Renvoie la valeur de env à l'indice i
+
+        :param i: correspond à un indice dans une liste
+        :return:renvoie la valeur dans env à l'indice i
+        """
+
         if isinstance(i, int):
             return self.env[i]
         return self.env
 
     def set_env(self, env):
-        self.env = env
+        """
+        Changement de la valeur de env
 
-    def pop_env(self, n=0):
-        # TODO a supp !
-        result = self.env[n]
-        del self.env[n]
-        return result
+        :param env: la nouvelle valeur de env
+        """
+        self.env = env
 
     def get_position(self, label):
         """
+        Renvoie la position courrant
+
         :return: renvoie la position du label dans prog
         """
+
         inst = next(filter(lambda x: x.label == label, self.prog))
 
         return self.prog.index(inst)
@@ -177,30 +315,45 @@ class MiniZamVM:
 
     def fetch(self):
         """
+        Renvoie les arguments courrant
+
         :return: renvoie les arguments de l'instruction courante
         """
+
         return self.current_args
 
     def print_current_state(self):
-        print('\targs =',str(self.current_args), '\n\taccu =', self.acc, ' ',
+        """
+        Impression du context du programme
+        """
+
+        print('\targs =', str(self.current_args), '\n\taccu =', self.acc, ' ',
               "\n\tstack=", self.stack.items, end="\n")
 
     def run(self):
+        """
+        Méthode qui exécute les instructions du programme
+        """
+
         while True:
             print(self.prog[self.pc].command, ' pc =', self.pc)
             self.instructions[self.prog[self.increment_pc()].command].execute(self)
             self.print_current_state()
 
     def shutdown(self):
+        """
+        Fin de l’exécution du programme
+        """
+
         print("acc = ", self.acc)
         exit()
 
     def load_file(self, file):
 
         """
-        read intruction of program and set self.prog
-        :rtype: object
+        L'écture du programme et chargement du programme dans le registre prog
         """
+
         with open(file, "r") as f:
             lines = re.findall(r'(?:(\w+):)?\t(\w+)(.*)', f.read())
             self.prog = list(map(LineInstruction.build, lines))

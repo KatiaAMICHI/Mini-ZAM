@@ -178,16 +178,28 @@ class BranchIfNot(Instruction):
 
 
 class Push(Instruction):
+    """
+    Empilement d'une valeur dans la stack
+    """
+
     def execute(self, state):
         state.push(state.get_accumulator())
 
 
 class Pop(Instruction):
+    """
+    Dépilement d'une valeur dans la stack
+    """
+
     def execute(self, state):
         state.pop()
 
 
 class Acc(Instruction):
+    """
+    Accès à la i-ième valeur de la pile
+    """
+
     def parse_args(self, args):
         Instruction.check_length(args, 1, "ACC")
         return int(args[0])
@@ -198,6 +210,10 @@ class Acc(Instruction):
 
 
 class EnvAcc(Instruction):
+    """
+    Accès à la i-ième valeur de l’environnement
+    """
+
     def parse_args(self, args):
         Instruction.check_length(args, 1, "ENVACC")
         return int(args[0])
@@ -208,6 +224,10 @@ class EnvAcc(Instruction):
 
 
 class Closure(Instruction):
+    """
+    Création de fermeture
+    """
+
     def parse_args(self, args):
         Instruction.check_length(args, 2, "CLOSURE")
         return args[0], int(args[1])
@@ -264,22 +284,11 @@ class Apply(Instruction):
         state.set_extra_args(n - 1)
 
 
-class ReStart(Instruction):
-    def execute(self, state):
-        env = state.get_env()
-        n = len(env)
-
-        # déplacer les éléments de env de 1 à n-1 dans la pile
-        state.push(env[1:n])
-
-        # extra args est incrémenté de (n − 1).
-        state.set_extra_args(state.get_extra_args() + (n - 1))
-
-        # env prend pour valeur de env[0]
-        state.set_env(env[0])
-
-
 class Grab(Instruction):
+    """
+    Gestion de l’application partielle
+    """
+
     def execute(self, state):
         n = int(state.fetch()[0])
         extra_args = int(state.get_extra_args())
@@ -298,6 +307,21 @@ class Grab(Instruction):
             state.set_pc(state.pop())
             state.set_env(state.pop())
             state.set_extra_args(state.pop())
+
+
+class ReStart(Instruction):
+    def execute(self, state):
+        env = state.get_env()
+        n = len(env)
+
+        # déplacer les éléments de env de 1 à n-1 dans la pile
+        state.push(env[1:n])
+
+        # extra args est incrémenté de (n − 1).
+        state.set_extra_args(state.get_extra_args() + (n - 1))
+
+        # env prend pour valeur de env[0]
+        state.set_env(env[0])
 
 
 class MakeBlock(Instruction):
@@ -360,6 +384,11 @@ class GetVectItem(Instruction):
 
 
 class SetField(Instruction):
+    """
+    Met dans la n-ième valeur du bloc situé dans accu
+    la valeur d´epilée de stack.
+    """
+
     def execute(self, state):
         n = int(state.fetch()[0])
 
@@ -377,6 +406,12 @@ class SetField(Instruction):
 
 
 class SetVectItem(Instruction):
+    """
+    Dépile deux éléments n et v de stack,
+    met v dans la n-i`ème valeur du bloc situé dans accu.
+    L'accumulateur prend () comme valeur
+    """
+
     def execute(self, state):
         # dépiler deux valeurs dans la stack
         n = state.pop()
@@ -385,7 +420,7 @@ class SetVectItem(Instruction):
         if isinstance(n, MLValue):
             n = n.value
 
-        state.acc.value = state.acc.value[0:n] + [v] + state.acc.value[(n+1)::]
+        state.acc.value = state.acc.value[0:n] + [v] + state.acc.value[(n + 1)::]
         state.set_accumulator(MLValue.unit())
 
 
