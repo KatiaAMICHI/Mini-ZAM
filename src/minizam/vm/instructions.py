@@ -187,7 +187,7 @@ class BranchIfNot(Instruction):
 
     def execute(self, state, label):
         acc = state.get_accumulator()
-        if acc is MLValue.false():
+        if acc == MLValue.false():
             state.set_pc(state.get_position(label))
 
 
@@ -346,11 +346,13 @@ class MakeBlock(Instruction):
         if n > 0:
             accu = state.get_accumulator()
             block = [accu]
-            val_pop = state.pop(n - 1)
-            if not isinstance(val_pop, list):
-                val_pop = [val_pop]
-            if len(val_pop) != 0:
-                block = block + val_pop
+            if len(block) < n:
+                print("n : ", n)
+                val_pop = state.pop(n - 1)
+                if not isinstance(val_pop, list):
+                    val_pop = [val_pop]
+                if len(val_pop) != 0:
+                    block = block + val_pop
             state.set_accumulator(MLValue.from_block(block))
 
 
@@ -364,6 +366,7 @@ class GetField(Instruction):
 
     def execute(self, state, n):
         val = state.get_accumulator().value
+        print('val[n] : ', val[n])
         state.set_accumulator(val[n])
 
 
@@ -413,9 +416,9 @@ class SetField(Instruction):
         # mettre la valeur dépilée dans la n'ième valeur du bloc
         block[n] = val_stack
 
-        # state.acc.value[n] = val_stack
+        state.acc.value[n] = val_stack
 
-        state.set_accumulator(MLValue.from_block(block))
+        # state.set_accumulator(MLValue.from_block(block))
 
 
 class SetVectItem(Instruction):

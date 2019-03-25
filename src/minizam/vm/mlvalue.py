@@ -40,6 +40,7 @@ class MLValue:
         if MLValue._FALSE is None:
             MLValue._FALSE = MLValue()
             MLValue._FALSE.value = 0
+        print("MLValue._FALSE : ", MLValue._FALSE)
         return MLValue._FALSE
 
     @staticmethod
