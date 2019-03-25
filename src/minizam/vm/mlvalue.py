@@ -65,7 +65,7 @@ class MLValue:
         if self is MLValue._UNIT:
             return "()"
 
-        return "mlvalue(Value: %s)" % str(self.value)
+        return "MLValue(Value: %s)" % str(self.value)
 
     def __str__(self):
         if self is MLValue._FALSE:
@@ -74,7 +74,7 @@ class MLValue:
             return "True"
         if self is MLValue._UNIT:
             return "()"
-        return "mlvalue(Value: %s)" % str(self.value)
+        return "MLValue(Value: %s)" % str(self.value)
 
     def __add__(self, other):
         self._check_int(other)

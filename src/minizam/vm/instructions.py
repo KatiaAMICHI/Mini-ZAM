@@ -7,7 +7,7 @@ class Instruction(ABC):
         return args
 
     @abstractmethod
-    def execute(self, state, args):
+    def execute(self, vm, args):
         pass
 
 
@@ -146,8 +146,8 @@ class Const(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "CONST").parse([int])
 
-    def execute(self, state, n):
-        state.set_accumulator(MLValue.from_int(n))
+    def execute(self, vm, n):
+        vm.acc = MLValue.from_int(n)
 
 
 class Prim(Instruction):
@@ -160,14 +160,12 @@ class Prim(Instruction):
 
     unary_op = {"not": _Not(), "print": _Print()}
 
-    def execute(self, state, op):
+    def execute(self, vm, op):
 
         if op in Prim.unary_op:
-            x = Prim.unary_op[op].execute(state.get_accumulator())
-            state.set_accumulator(x)
+            vm.acc = Prim.unary_op[op].execute(vm.acc)
         elif op in Prim.binary_op:
-            x = Prim.binary_op[op].execute(state.get_accumulator(), state.pop())
-            state.set_accumulator(x)
+            vm.acc = Prim.binary_op[op].execute(vm.acc, vm.pop())
         else:
             raise ValueError(str(op) + "is not an operator.")
 
@@ -177,18 +175,18 @@ class Branch(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "BRANCH").parse([str])
 
-    def execute(self, state, label):
-        state.set_pc(state.get_position(label))
+    def execute(self, vm, label):
+        vm.pc = vm.get_position(label)
 
 
 class BranchIfNot(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "BRANCHIFNOT").parse([str])
 
-    def execute(self, state, label):
-        acc = state.get_accumulator()
+    def execute(self, vm, label):
+        acc = vm.acc
         if acc is MLValue.false():
-            state.set_pc(state.get_position(label))
+            vm.pc = vm.get_position(label)
 
 
 class Push(Instruction):
@@ -196,8 +194,8 @@ class Push(Instruction):
     Empilement d'une valeur dans la stack
     """
 
-    def execute(self, state, args):
-        state.push(state.get_accumulator())
+    def execute(self, vm, args):
+        vm.push(vm.acc)
 
 
 class Pop(Instruction):
@@ -205,8 +203,8 @@ class Pop(Instruction):
     Dépilement d'une valeur dans la stack
     """
 
-    def execute(self, state, args):
-        state.pop()
+    def execute(self, vm, args):
+        vm.pop()
 
 
 class Acc(Instruction):
@@ -217,8 +215,8 @@ class Acc(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "ACC").parse([int])
 
-    def execute(self, state, index):
-        state.set_accumulator(state.peek(index))
+    def execute(self, vm, index):
+        vm.acc = vm.peek(index)
 
 
 class EnvAcc(Instruction):
@@ -229,8 +227,8 @@ class EnvAcc(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "ENVACC").parse([int])
 
-    def execute(self, state, index):
-        state.set_accumulator(state.get_env(index))
+    def execute(self, vm, index):
+        vm.acc = vm.get_env(index)
 
 
 class Closure(Instruction):
@@ -241,52 +239,52 @@ class Closure(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "CLOSURE").parse([str, int])
 
-    def execute(self, state, args):
+    def execute(self, vm, args):
         (label, n) = args
 
         if n > 0:
-            state.push(state.get_accumulator())
-            state.set_accumulator(MLValue.from_closure(state.get_position(label), state.pop(n)))
+            vm.push(vm.acc)
+            vm.acc = MLValue.from_closure(vm.get_position(label), vm.pop(n))
         else:
-            state.set_accumulator(MLValue.from_closure(state.get_position(label), []))
+            vm.acc = MLValue.from_closure(vm.get_position(label), [])
 
 
 class ClosureRec(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "CLOSUREREC").parse([str, int])
 
-    def execute(self, state, args):
+    def execute(self, vm, args):
         (label, n) = args
 
-        pc = state.get_position(label)
+        pc = vm.get_position(label)
         if n > 0:
-            state.push(state.get_accumulator())
-            state.set_accumulator(MLValue.from_closure(pc, [pc] + state.pop(n)))
+            vm.push(vm.acc)
+            vm.acc = MLValue.from_closure(pc, [pc] + vm.pop(n))
         else:
-            state.set_accumulator(MLValue.from_closure(pc, [pc]))
+            vm.acc = MLValue.from_closure(pc, [pc])
 
-        state.push(state.get_accumulator())
+        vm.push(vm.acc)
 
 
 class OffSetClosure(Instruction):
-    def execute(self, state, args):
-        state.set_accumulator(MLValue.from_closure(state.get_env(0), state.get_env()))
+    def execute(self, vm, args):
+        vm.acc = MLValue.from_closure(vm.get_env(0), vm.env)
 
 
 class Apply(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "APPLY").parse([int])
 
-    def execute(self, state, n):
-        args = state.pop(n)
+    def execute(self, vm, n):
+        args = vm.pop(n)
 
-        env = state.get_env()
-        pc = state.get_pc()
-        extra_args = state.get_extra_args()
-        state.push(args + [pc, env, extra_args])
+        env = vm.env
+        pc = vm.pc
+        extra_args = vm.extra_args
+        vm.push(args + [pc, env, extra_args])
 
-        state.change_context()
-        state.set_extra_args(n - 1)
+        vm.change_context()
+        vm.extra_args = n - 1
 
 
 class Grab(Instruction):
@@ -297,39 +295,38 @@ class Grab(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "GRAB").parse([int])
 
-    def execute(self, state, n):
+    def execute(self, vm, n):
 
-        extra_args = state.get_extra_args()
+        extra_args = vm.extra_args
 
         if extra_args >= n:
-            state.set_extra_args(extra_args - n)
+            vm.extra_args = extra_args - n
         else:
             # dépiler extra_args+1 éléments
-            ele_pop = state.pop(extra_args + 1)
+            ele_pop = vm.pop(extra_args + 1)
 
             # changer l'accumulateur
-            acc = MLValue.from_closure(state.get_pc() - 2, [state.get_env()] + ele_pop)
-            state.set_accumulator(acc)
-
+            acc = MLValue.from_closure(vm.pc - 2, [vm.env] + ele_pop)
+            vm.acc = acc
             # changer les valeurs extra_args, pc, env
-            state.set_pc(state.pop())
-            state.set_env(state.pop())
-            state.set_extra_args(state.pop())
+            vm.pc = vm.pop()
+            vm.env = vm.pop()
+            vm.extra_args = vm.pop()
 
 
 class ReStart(Instruction):
-    def execute(self, state, args):
-        env = state.get_env()
+    def execute(self, vm, args):
+        env = vm.env
         n = len(env)
 
         # déplacer les éléments de env de 1 à n-1 dans la pile
-        state.push(env[1:n])
+        vm.push(env[1:n])
 
         # extra args est incrémenté de (n − 1).
-        state.set_extra_args(state.get_extra_args() + (n - 1))
+        vm.extra_args = vm.extra_args + (n - 1)
 
         # env prend pour valeur de env[0]
-        state.set_env(env[0])
+        vm.env = env[0]
 
 
 class MakeBlock(Instruction):
@@ -342,16 +339,16 @@ class MakeBlock(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "MAKEBLOCK").parse([int])
 
-    def execute(self, state, n):
+    def execute(self, vm, n):
         if n > 0:
-            accu = state.get_accumulator()
-            block = [accu]
-            val_pop = state.pop(n - 1)
+            acc = vm.acc
+            block = [acc]
+            val_pop = vm.pop(n - 1)
             if not isinstance(val_pop, list):
                 val_pop = [val_pop]
             if len(val_pop) != 0:
                 block = block + val_pop
-            state.set_accumulator(MLValue.from_block(block))
+            vm.acc = MLValue.from_block(block)
 
 
 class GetField(Instruction):
@@ -362,9 +359,9 @@ class GetField(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "GETFIELD").parse([int])
 
-    def execute(self, state, n):
-        val = state.get_accumulator().value
-        state.set_accumulator(val[n])
+    def execute(self, vm, n):
+        val = vm.acc.value
+        vm.acc = val[n]
 
 
 class VectLength(Instruction):
@@ -372,9 +369,9 @@ class VectLength(Instruction):
     met dans l’accumulateur la taille du bloc situé dans accu.
     """
 
-    def execute(self, state, args):
-        len_block = len(state.get_accumulator().value)
-        state.set_accumulator(MLValue.from_int(len_block))
+    def execute(self, vm, args):
+        len_block = len(vm.acc.value)
+        vm.acc = MLValue.from_int(len_block)
 
 
 class GetVectItem(Instruction):
@@ -383,16 +380,16 @@ class GetVectItem(Instruction):
     bloc situé dans l’accumulateur
     """
 
-    def execute(self, state, args):
+    def execute(self, vm, args):
         # dépile un élément n de stack
-        n = state.pop()
+        n = vm.pop()
         # récupére bloc dans l’accumulateur
-        val_block = state.get_accumulator().value
+        val_block = vm.acc.value
         # met dans accu la n-i`ème valeur du bloc
         if isinstance(n, MLValue):
             n = n.value
-        state.acc = val_block[n]
-        state.set_accumulator(val_block[n])
+        vm.acc = val_block[n]
+        vm.acc = val_block[n]
 
 
 class SetField(Instruction):
@@ -404,18 +401,18 @@ class SetField(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "SETFIELD").parse([int])
 
-    def execute(self, state, n):
+    def execute(self, vm, n):
         # dépiler une valeur dans la stack
-        val_stack = state.pop()
+        val_stack = vm.pop()
 
         # récupérer le bloc dans l'accumulateur sous forme de liste
-        block = list(state.get_accumulator().value)
+        block = list(vm.acc.value)
         # mettre la valeur dépilée dans la n'ième valeur du bloc
         block[n] = val_stack
 
-        # state.acc.value[n] = val_stack
+        # vm.acc.value[n] = val_stack
 
-        state.set_accumulator(MLValue.from_block(block))
+        vm.acc = MLValue.from_block(block)
 
 
 class SetVectItem(Instruction):
@@ -425,16 +422,16 @@ class SetVectItem(Instruction):
     L'accumulateur prend () comme valeur
     """
 
-    def execute(self, state, args):
+    def execute(self, vm, args):
         # dépiler deux valeurs dans la stack
-        n = state.pop()
-        v = state.pop()
+        n = vm.pop()
+        v = vm.pop()
 
         if isinstance(n, MLValue):
             n = n.value
 
-        state.acc.value = state.acc.value[0:n] + [v] + state.acc.value[(n + 1)::]
-        state.set_accumulator(MLValue.unit())
+        vm.acc.value = vm.acc.value[0:n] + [v] + vm.acc.value[(n + 1)::]
+        vm.acc = MLValue.unit()
 
 
 class Assign(Instruction):
@@ -446,15 +443,15 @@ class Assign(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "ASSIGN").parse([int])
 
-    def execute(self, state, n):
-        acc = state.get_accumulator()
+    def execute(self, vm, n):
+        acc = vm.acc
 
         # remplacer le n-ième élément de la pile par la valeur de accu
-        state.set_stack(n, acc)
-        # state.stack.items[len(state.stack.items)-n-1] = MLValue.from_int(1111)
+        vm.set_element(n, acc)
+        # vm.stack.items[len(vm.stack.items)-n-1] = MLValue.from_int(1111)
 
         # mettre la valeur () dans l'accumulateur
-        state.set_accumulator(MLValue.unit())
+        vm.acc = MLValue.unit()
 
 
 class Return(Instruction):
@@ -462,15 +459,15 @@ class Return(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "RETURN").parse([int])
 
-    def execute(self, state, n):
-        state.pop(n)
-        if state.get_extra_args() == 0:
-            state.set_pc(state.pop(0))
-            state.set_env(state.pop(0))
-            state.pop(0)
+    def execute(self, vm, n):
+        vm.pop(n)
+        if vm.extra_args == 0:
+            vm.pc = vm.pop()
+            vm.env = vm.pop()
+            vm.pop()
         else:
-            state.set_extra_args(state.get_extra_args() - 1)
-            state.change_context()
+            vm.extra_args = vm.extra_args - 1
+            vm.change_context()
 
 
 class AppTerm(Instruction):
@@ -478,46 +475,46 @@ class AppTerm(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "APPTERM").parse([int, int])
 
-    def execute(self, state, args):
+    def execute(self, vm, args):
         n, m = args
-        args = state.pop(n)
-        state.pop(m - n)
-        state.push(args)
-        state.change_context()
-        state.extra_args = state.extra_args + (n - 1)
+        args = vm.pop(n)
+        vm.pop(m - n)
+        vm.push(args)
+        vm.change_context()
+        vm.extra_args = vm.extra_args + (n - 1)
 
 
 class Stop(Instruction):
-    def execute(self, state, args):
-        state.shutdown()
+    def execute(self, vm, args):
+        vm.shutdown()
 
 
 class PushTrap(Instruction):
     def parse_args(self, args):
         return ArgsParser(args, "PUSHTRAP").parse([str])
 
-    def execute(self, state, label):
-        state.push([state.get_position(label), state.trap_sp, state.get_env(), state.extra_args])
-        state.trap_sp = state.peek()
+    def execute(self, vm, label):
+        vm.push([vm.get_position(label), vm.trap_sp, vm.env, vm.extra_args])
+        vm.trap_sp = vm.peek()
 
 
 class PopTrap(Instruction):
-    def execute(self, state, args):
-        state.pop()
-        state.trap_sp = state.pop()
-        state.pop(2)
+    def execute(self, vm, args):
+        vm.pop()
+        vm.trap_sp = vm.pop()
+        vm.pop(2)
 
 
 class Raise(Instruction):
 
-    def execute(self, state, args):
-        if state.trap_sp is None:
-            state.shutdown()
+    def execute(self, vm, args):
+        if vm.trap_sp is None:
+            vm.shutdown()
         else:
-            index = state.stack.items.index(state.trap_sp)
-            state.pop(index)
-            state.pc = state.pop()
-            state.trap_sp = state.pop()
-            state.env = state.pop()
-            state.extra_args = state.pop()
-            # del state.stack.items[index:index + 4]
+            index = vm.stack.items.index(vm.trap_sp)
+            vm.pop(index)
+            vm.pc = vm.pop()
+            vm.trap_sp = vm.pop()
+            vm.env = vm.pop()
+            vm.extra_args = vm.pop()
+            # del vm.stack.items[index:index + 4]

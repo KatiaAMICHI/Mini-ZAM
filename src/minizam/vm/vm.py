@@ -154,16 +154,7 @@ class MiniZamVM:
         self.extra_args = 0  # le nombre d’arguments restant a appliquer à une fonction
         self.trap_sp = None
 
-    def get_stack(self):
-        """
-        Méthode qui renvoie la stack
-
-        :return: renvoie la stack
-        """
-
-        return self.stack
-
-    def set_stack(self, index, value):
+    def set_element(self, index, value):
         """
         Méthode qui modifier la valeur à l'indice stack par value
 
@@ -173,41 +164,6 @@ class MiniZamVM:
         """
 
         return self.stack.set_element(index, value)
-
-    def set_accumulator(self, acc):
-        """
-        Méthode qui change la valeur de l'accumulateur
-
-        :param acc: la nouvelle valeur de l'accumulateur
-        """
-
-        self.acc = acc
-
-    def get_accumulator(self):
-        """
-        Méthode qui renvoie la valeur de l'accumulateur
-
-        :return: renvoie l'accumulateur
-        """
-        return self.acc
-
-    def get_extra_args(self):
-        """
-        Méthode qui renvoie la valeur du registre extra_args
-
-        :return: renvoie extra_args
-        """
-
-        return self.extra_args
-
-    def set_extra_args(self, extra_args):
-        """
-        Méthode qui change la valeur de extra_args
-
-        :param extra_args: la nouvelle valeur du registre extra_args
-        """
-
-        self.extra_args = extra_args
 
     def pop(self, n=0):
         """
@@ -247,14 +203,6 @@ class MiniZamVM:
 
         return self.stack.is_empty()
 
-    def set_pc(self, pc):
-        """
-        Changement de la valeur de pc
-
-        :param pc: la nouvelle valeur de pc
-        """
-        self.pc = pc
-
     def increment_pc(self):
         """
         Incrementation de la valeur de pc
@@ -268,15 +216,6 @@ class MiniZamVM:
             self.current_args = self.prog[pc].args
         return pc
 
-    def get_pc(self):
-        """
-        Renvoie la valeur de pc
-
-        :return: renvoie la valeur de pc
-        """
-
-        return self.pc
-
     def get_env(self, i=None):
         """
         Renvoie la valeur de env à l'indice i
@@ -288,14 +227,6 @@ class MiniZamVM:
         if isinstance(i, int):
             return self.env[i]
         return self.env
-
-    def set_env(self, env):
-        """
-        Changement de la valeur de env
-
-        :param env: la nouvelle valeur de env
-        """
-        self.env = env
 
     def get_position(self, label):
         """

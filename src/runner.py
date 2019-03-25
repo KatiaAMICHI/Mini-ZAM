@@ -1,7 +1,7 @@
 from src.minizam.vm.vm import MiniZamVM
 import sys
 import os
-
+import click
 PATH_dec = "/home/katy/PycharmProjects/Mini-ZAM/tests/block_values/"
 
 
