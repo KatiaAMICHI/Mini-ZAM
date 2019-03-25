@@ -129,13 +129,16 @@ class MiniZamVM:
     Class qui contient les fonctions principales de la machine virtuelle
     """
 
-    instructions = {"CONST": Const(), "PRIM": Prim(), "BRANCH": Branch(), "BRANCHIFNOT": BranchIfNot(),
+    instructions = {"CONST": Const(), "PRIM": Prim(),
+                    "BRANCH": Branch(), "BRANCHIFNOT": BranchIfNot(),
                     "PUSH": Push(), "POP": Pop(), "ACC": Acc(), "ENVACC": EnvAcc(),
                     "CLOSURE": Closure(), "CLOSUREREC": ClosureRec(), "OFFSETCLOSURE": OffSetClosure(),
-                    "RESTART": ReStart(), "GRAB": Grab(), "APPLY": Apply(), "MAKEBLOCK": MakeBlock(),
-                    "GETFIELD": GetField(), "VECTLENGTH": VectLength(), "GETVECTITEM": GetVectItem(),
-                    "SETFIELD": SetField(), "SETVECTITEM": SetVectItem(), "ASSIGN": Assign(),
-                    "RETURN": Return(), "STOP": Stop(), "PUSHTRAP": PushTrap(), "POPTRAP": PopTrap(), "RAISE": Raise()}
+                    "RESTART": ReStart(), "GRAB": Grab(), "APPLY": Apply(), "RETURN": Return(), "APPTERM": AppTerm(),
+                    "MAKEBLOCK": MakeBlock(), "GETFIELD": GetField(), "VECTLENGTH": VectLength(),
+                    "GETVECTITEM": GetVectItem(), "SETFIELD": SetField(), "SETVECTITEM": SetVectItem(),
+                    "ASSIGN": Assign(),
+                    "PUSHTRAP": PushTrap(), "POPTRAP": PopTrap(), "RAISE": Raise(),
+                    "STOP": Stop()}
 
     def __init__(self):
         """
@@ -327,7 +330,7 @@ class MiniZamVM:
         Impression du context du programme
         """
 
-        print('\targs =', str(self.current_args), '\n\taccu =', self.acc, ' ',
+        print('\tpc = ', self.pc, '\n\targs =', str(self.current_args), '\n\taccu =', self.acc, ' ',
               "\n\tstack=", self.stack.items, end="\n")
 
     def run(self):
@@ -357,3 +360,15 @@ class MiniZamVM:
         with open(file, "r") as f:
             lines = re.findall(r'(?:(\w+):)?\t(\w+)(.*)', f.read())
             self.prog = list(map(LineInstruction.build, lines))
+
+    def load_file_optimized(self, file):
+        self.load_file(file)
+        for i, line in enumerate(self.prog):
+            if self.prog[i].command == "APPLY" and self.prog[i + 1].command == "RETURN":
+                self.prog[i].command = "APPTERM"
+                n = int(self.prog[i].args[0])
+                m = n + int(self.prog[i + 1].args[0])
+                self.prog[i].args = [n, m]
+                del self.prog[i + 1]
+
+        print(self.prog)

@@ -16,5 +16,5 @@ def run_main():
 if __name__ == '__main__':
     vm = MiniZamVM()
     arg = PATH_dec + "couple.txt"
-    vm.load_file(arg)
+    vm.load_file_optimized(sys.argv[1])
     vm.run()

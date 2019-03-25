@@ -500,7 +500,7 @@ class MakeBlockTest(unittest.TestCase):
         n = 2
         stack_init = [MLValue.from_int(10), MLValue.from_closure(1, []), MLValue.from_int(4)]
         accu = MLValue.from_int(1)
-        self.block = [accu] + [stack_init[0:n - 1]]
+        self.block = [accu] + stack_init[0:n-1]
 
         self.vm.current_args = [n]
         self.vm.set_accumulator(accu)

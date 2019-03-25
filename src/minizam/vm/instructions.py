@@ -464,8 +464,10 @@ class AppTerm(Instruction):
     def execute(self, state):
         n, m = self.parse_args(state.fetch())
         args = state.pop(n)
-        local_vars = state.pop(m - n)
+        state.pop(m - n)
         state.push(args)
+        state.change_context()
+        state.extra_args = state.extra_args + (n - 1)
 
 
 class Stop(Instruction):
@@ -480,7 +482,7 @@ class PushTrap(Instruction):
 
     def execute(self, state):
         label = self.parse_args(state.fetch())
-        state.push([state.extra_args, state.get_env(), state.trap_sp, state.get_position(label)])
+        state.push([state.get_position(label), state.trap_sp, state.get_env(), state.extra_args])
         state.trap_sp = state.peek()
 
 
@@ -498,4 +500,9 @@ class Raise(Instruction):
             state.shutdown()
         else:
             index = state.stack.items.index(state.trap_sp)
-            state.pop(index + 4)
+            state.pop(index)
+            state.pc = state.pop()
+            state.trap_sp = state.pop()
+            state.env = state.pop()
+            state.extra_args = state.pop()
+            # del state.stack.items[index:index + 4]

@@ -1,7 +1,7 @@
 class MLValue:
-    _TRUE = 1
-    _FALSE = 0
-    _UNIT = 0
+    _TRUE = None
+    _FALSE = None
+    _UNIT = None
 
     def __init__(self):
         super().__init__()
@@ -46,10 +46,10 @@ class MLValue:
     def unit():
         if MLValue._UNIT is None:
             MLValue._UNIT = MLValue()
-            MLValue._UNIT.value = None
+            MLValue._UNIT.value = 0
         return MLValue._UNIT
 
-    def _check(self, other):
+    def _check_int(self, other):
         if not isinstance(self.value, int):
             raise TypeError(str(self.value) + " is not an instance of int")
         if not isinstance(other, MLValue):
@@ -77,22 +77,24 @@ class MLValue:
         return "mlvalue(Value: %s)" % str(self.value)
 
     def __add__(self, other):
-        self._check(other)
+        self._check_int(other)
         return MLValue.from_int(self.value + other.value)
 
     def __sub__(self, other):
-        self._check(other)
+        self._check_int(other)
         return MLValue.from_int(self.value - other.value)
 
     def __mul__(self, other):
-        self._check(other)
+        self._check_int(other)
         return MLValue.from_int(self.value * other.value)
 
     def __truediv__(self, other):
-        self._check(other)
+        self._check_int(other)
         return MLValue.from_int(int(self.value / other.value))
 
     def __eq__(self, other):
+        if not isinstance(other, MLValue):
+            return False
         if self.value == other.value:
             return MLValue.true()
         else:
@@ -105,28 +107,28 @@ class MLValue:
             return MLValue.false()
 
     def __lt__(self, other):
-        self._check(other)
+        self._check_int(other)
         if self.value < other.value:
             return MLValue.true()
         else:
             return MLValue.false()
 
     def __le__(self, other):
-        self._check(other)
+        self._check_int(other)
         if self.value <= other.value:
             return MLValue.true()
         else:
             return MLValue.false()
 
     def __gt__(self, other):
-        self._check(other)
+        self._check_int(other)
         if self.value > other.value:
             return MLValue.true()
         else:
             return MLValue.false()
 
     def __ge__(self, other):
-        self._check(other)
+        self._check_int(other)
         if self.value >= other.value:
             return MLValue.true()
         else:
