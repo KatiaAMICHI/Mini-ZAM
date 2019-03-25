@@ -12,18 +12,14 @@ class ConstTest(unittest.TestCase):
         pass
 
     def test_execute(self):
-        self.vm.current_args = [1]
-        MiniZamVM.instructions["CONST"].execute(self.vm)
+        MiniZamVM.instructions["CONST"].execute(self.vm, 1)
         self.assertEqual(MLValue.from_int(1), self.vm.get_accumulator())
 
-        self.vm.current_args = ["d"]
+        with self.assertRaises(TypeError):
+            MiniZamVM.instructions["CONST"].execute(self.vm, "d")
 
-        with self.assertRaises(ValueError):
-            MiniZamVM.instructions["CONST"].execute(self.vm)
-
-        self.vm.current_args = [1, "d"]
-        with self.assertRaises(ValueError):
-            MiniZamVM.instructions["CONST"].execute(self.vm)
+        with self.assertRaises(TypeError):
+            MiniZamVM.instructions["CONST"].execute(self.vm, [1, "d"])
 
 
 def check_stack(test, size, last):
@@ -31,10 +27,10 @@ def check_stack(test, size, last):
     test.assertEqual(test.vm.peek(), MLValue.from_int(last))
 
 
-def check_type(test, apply):
+def check_type(test, apply, args):
     apply()
     with test.assertRaises(TypeError):
-        MiniZamVM.instructions["PRIM"].execute(test.vm)
+        MiniZamVM.instructions["PRIM"].execute(test.vm, args)
 
 
 class PrimTestArithmetic(unittest.TestCase):
@@ -47,8 +43,8 @@ class PrimTestArithmetic(unittest.TestCase):
     def execute(self, op, result):
         self.do_operation(op, result)
         check_stack(self, 2, 12)
-        check_type(self, lambda: self.vm.push(MLValue.from_closure(1, [])))
-        check_type(self, lambda: self.vm.set_accumulator(MLValue.from_closure(1, [])))
+        check_type(self, lambda: self.vm.push(MLValue.from_closure(1, [])), op)
+        check_type(self, lambda: self.vm.set_accumulator(MLValue.from_closure(1, [])), op)
 
     def test_plus(self):
         self.execute("+", 15)
@@ -63,8 +59,7 @@ class PrimTestArithmetic(unittest.TestCase):
         self.execute("/", 2)
 
     def do_operation(self, op, result):
-        self.vm.current_args = [op]
-        MiniZamVM.instructions["PRIM"].execute(self.vm)
+        MiniZamVM.instructions["PRIM"].execute(self.vm, op)
         self.assertEqual(MLValue.from_int(result), self.vm.get_accumulator())
 
 
@@ -77,12 +72,12 @@ class PrimTestLogical(unittest.TestCase):
     def execute(self, to_push, result):
         if to_push is not None:
             self.vm.push(to_push)
-        MiniZamVM.instructions["PRIM"].execute(self.vm)
+        MiniZamVM.instructions["PRIM"].execute(self.vm, self.args)
         self.assertIs(result, self.vm.get_accumulator())
         check_stack(self, 3, 5)
 
     def test_and(self):
-        self.vm.current_args = ["and"]
+        self.args = "and"
 
         # true and true => true
         self.vm.set_accumulator(MLValue.true())
@@ -94,11 +89,11 @@ class PrimTestLogical(unittest.TestCase):
         # false and false => false
         self.execute(MLValue.false(), MLValue.false())
 
-        check_type(self, lambda: None)
-        check_type(self, lambda: self.vm.set_accumulator(MLValue.from_int(1)))
+        check_type(self, lambda: None,"and")
+        check_type(self, lambda: self.vm.set_accumulator(MLValue.from_int(1)),"and")
 
     def test_or(self):
-        self.vm.current_args = ["or"]
+        self.args = "or"
 
         # true or true => true
         self.vm.set_accumulator(MLValue.true())
@@ -111,11 +106,11 @@ class PrimTestLogical(unittest.TestCase):
         self.vm.set_accumulator(MLValue.false())
         self.execute(MLValue.false(), MLValue.false())
 
-        check_type(self, lambda: None)
-        check_type(self, lambda: self.vm.set_accumulator(MLValue.from_int(1)))
+        check_type(self, lambda: None,"or")
+        check_type(self, lambda: self.vm.set_accumulator(MLValue.from_int(1)),"or")
 
     def test_not(self):
-        self.vm.current_args = ["not"]
+        self.args = "not"
 
         # not true => false
         self.vm.set_accumulator(MLValue.true())
@@ -124,7 +119,7 @@ class PrimTestLogical(unittest.TestCase):
         # not false => true
         self.execute(None, MLValue.true())
 
-        check_type(self, lambda: self.vm.set_accumulator(MLValue.from_int(1)))
+        check_type(self, lambda: self.vm.set_accumulator(MLValue.from_int(1)),"not")
 
 
 class PrimTestComparison(unittest.TestCase):
@@ -132,8 +127,7 @@ class PrimTestComparison(unittest.TestCase):
         self.vm = MiniZamVM()
 
     def execute(self, op, result):
-        self.vm.current_args = [op]
-        MiniZamVM.instructions["PRIM"].execute(self.vm)
+        MiniZamVM.instructions["PRIM"].execute(self.vm, op)
         self.assertIs(result, self.vm.get_accumulator())
 
     def prepare(self, acc, to_psuh):
@@ -190,12 +184,11 @@ class BranchTest(unittest.TestCase):
         self.vm = MiniZamVM()
         lines = [("", "CONST", "1"), ("", "PRIM", "print"), ("", "BRANCH", "L"),
                  ("", "PUSH", ""), ("L", "CONST", "2"), ("", "PUSH", "")]
-        self.vm.current_args = ["L"]
         self.vm.pc = 2
         self.vm.prog = list(map(LineInstruction.build, lines))
 
     def test_execute(self):
-        MiniZamVM.instructions["BRANCH"].execute(self.vm)
+        MiniZamVM.instructions["BRANCH"].execute(self.vm, "L")
         self.assertEqual(4, self.vm.pc)
 
 
@@ -204,17 +197,16 @@ class BranchIfNotTest(unittest.TestCase):
         self.vm = MiniZamVM()
         lines = [("", "CONST", "1"), ("", "PRIM", "print"), ("", "BRANCHIFNOT", "L"),
                  ("", "PUSH", ""), ("L", "CONST", "2"), ("", "PUSH", "")]
-        self.vm.current_args = ["L"]
         self.vm.pc = 2
         self.vm.prog = list(map(LineInstruction.build, lines))
 
     def test_execute(self):
         self.vm.set_accumulator(MLValue.false())
-        MiniZamVM.instructions["BRANCHIFNOT"].execute(self.vm)
+        MiniZamVM.instructions["BRANCHIFNOT"].execute(self.vm, "L")
         self.assertEqual(4, self.vm.pc)
         self.vm.pc = 2
         self.vm.set_accumulator(MLValue.true())
-        MiniZamVM.instructions["BRANCHIFNOT"].execute(self.vm)
+        MiniZamVM.instructions["BRANCHIFNOT"].execute(self.vm, "L")
         self.assertEqual(2, self.vm.pc)
 
 
@@ -224,10 +216,10 @@ class PushTest(unittest.TestCase):
 
     def test_execute(self):
         self.vm.set_accumulator(MLValue.from_int(5))
-        MiniZamVM.instructions["PUSH"].execute(self.vm)
+        MiniZamVM.instructions["PUSH"].execute(self.vm, None)
         self.assertEqual(MLValue.from_int(5), self.vm.peek())
         self.vm.set_accumulator(MLValue.from_int(10))
-        MiniZamVM.instructions["PUSH"].execute(self.vm)
+        MiniZamVM.instructions["PUSH"].execute(self.vm, None)
         self.assertEqual(MLValue.from_int(10), self.vm.peek())
         self.assertEqual(2, self.vm.stack.size())
 
@@ -238,12 +230,12 @@ class PopTest(unittest.TestCase):
         self.vm.push(list(map(MLValue.from_int, [1, 2, 5])))
 
     def test_execute(self):
-        MiniZamVM.instructions["POP"].execute(self.vm)
+        MiniZamVM.instructions["POP"].execute(self.vm, None)
         self.assertEqual(2, self.vm.stack.size())
-        MiniZamVM.instructions["POP"].execute(self.vm)
-        MiniZamVM.instructions["POP"].execute(self.vm)
+        MiniZamVM.instructions["POP"].execute(self.vm, None)
+        MiniZamVM.instructions["POP"].execute(self.vm, None)
         self.assertEqual(0, self.vm.stack.size())
-        MiniZamVM.instructions["POP"].execute(self.vm)
+        MiniZamVM.instructions["POP"].execute(self.vm, None)
         self.assertEqual(0, self.vm.stack.size())
 
 
@@ -254,17 +246,16 @@ class AccTest(unittest.TestCase):
         self.vm.push(MLValue.from_closure(1, []))
 
     def execute(self, i, result):
-        self.vm.current_args = [i]
-        MiniZamVM.instructions["ACC"].execute(self.vm)
+        MiniZamVM.instructions["ACC"].execute(self.vm, i)
         self.assertEqual(4, self.vm.stack.size())
         self.assertEqual(result, self.vm.get_accumulator())
 
     def test_execute(self):
-        self.execute("1", MLValue.from_int(1))
-        self.execute("3", MLValue.from_int(5))
-        self.execute("0", MLValue.from_closure(1, []))
+        self.execute(1, MLValue.from_int(1))
+        self.execute(3, MLValue.from_int(5))
+        self.execute(0, MLValue.from_closure(1, []))
         with self.assertRaises(IndexError):
-            self.execute("5", None)
+            self.execute(5, None)
 
 
 class EnvAccTest(unittest.TestCase):
@@ -273,15 +264,14 @@ class EnvAccTest(unittest.TestCase):
         self.vm.env = list(map(MLValue.from_int, [1, 2, 5]))
 
     def execute(self, i, result):
-        self.vm.current_args = [i]
-        MiniZamVM.instructions["ENVACC"].execute(self.vm)
+        MiniZamVM.instructions["ENVACC"].execute(self.vm, i)
         self.assertEqual(result, self.vm.get_accumulator())
 
     def test_execute(self):
-        self.execute("0", MLValue.from_int(1))
-        self.execute("2", MLValue.from_int(5))
+        self.execute(0, MLValue.from_int(1))
+        self.execute(2, MLValue.from_int(5))
         with self.assertRaises(IndexError):
-            self.execute("5", None)
+            self.execute(5, None)
 
 
 class ClosureTest(unittest.TestCase):
@@ -294,14 +284,12 @@ class ClosureTest(unittest.TestCase):
         self.vm.prog = list(map(LineInstruction.build, lines))
 
     def test_execute(self):
-        self.vm.current_args = ["L", "0"]
-        MiniZamVM.instructions["CLOSURE"].execute(self.vm)
+        MiniZamVM.instructions["CLOSURE"].execute(self.vm, ["L", 0])
         self.assertEqual(MLValue.from_closure(3, []), self.vm.get_accumulator())
         self.assertEqual(3, self.vm.stack.size())
 
         self.vm.set_accumulator(MLValue.false())
-        self.vm.current_args = ["L", "2"]
-        MiniZamVM.instructions["CLOSURE"].execute(self.vm)
+        MiniZamVM.instructions["CLOSURE"].execute(self.vm, ["L", 2])
         self.assertEqual(MLValue.from_closure(3, [MLValue.false(), MLValue.from_int(1)]), self.vm.get_accumulator())
         self.assertEqual(2, self.vm.stack.size())
 
@@ -316,8 +304,7 @@ class ClosureRecTest(unittest.TestCase):
         self.vm.prog = list(map(LineInstruction.build, lines))
 
     def test_execute(self):
-        self.vm.current_args = ["L", "0"]
-        MiniZamVM.instructions["CLOSUREREC"].execute(self.vm)
+        MiniZamVM.instructions["CLOSUREREC"].execute(self.vm, ["L", 0])
         self.assertEqual(MLValue.from_closure(3, [3]), self.vm.get_accumulator())
         self.assertEqual(4, self.vm.stack.size())
 
@@ -327,8 +314,7 @@ class ClosureRecTest(unittest.TestCase):
         # setup acc
         self.vm.set_accumulator(MLValue.false())
         # test with n > 0
-        self.vm.current_args = ["L", "2"]
-        MiniZamVM.instructions["CLOSUREREC"].execute(self.vm)
+        MiniZamVM.instructions["CLOSUREREC"].execute(self.vm, ["L", 2])
         self.assertEqual(MLValue.from_closure(3, [3, MLValue.false(), MLValue.from_int(1)]), self.vm.get_accumulator())
         self.assertEqual(3, self.vm.stack.size())
 
@@ -340,7 +326,7 @@ class OffSetClosureTest(unittest.TestCase):
         self.vm.set_env(self.env_int)
 
     def test_off_set_closure(self):
-        MiniZamVM.instructions["OFFSETCLOSURE"].execute(self.vm)
+        MiniZamVM.instructions["OFFSETCLOSURE"].execute(self.vm, None)
         self.assertEqual(self.vm.get_accumulator(), MLValue.from_closure(self.env_int[0], self.env_int))
 
 
@@ -354,8 +340,7 @@ class ApplyTest(unittest.TestCase):
         self.vm.set_accumulator(MLValue.from_closure(5, []))
 
     def test_execute(self):
-        self.vm.current_args = ["2"]
-        MiniZamVM.instructions["APPLY"].execute(self.vm)
+        MiniZamVM.instructions["APPLY"].execute(self.vm, 2)
         self.assertEqual([], self.vm.env)
         self.assertEqual(5, self.vm.pc)
 
@@ -380,7 +365,6 @@ class ReturnTest(unittest.TestCase):
         self.e = [MLValue.from_closure(2, [MLValue.from_int(11)])]
 
         # préparation de l'environnement
-        self.vm.current_args = [self.n]
 
         self.vm.push(MLValue.from_int(4))
         self.vm.push(MLValue.from_closure(1, []))
@@ -399,7 +383,7 @@ class ReturnTest(unittest.TestCase):
         vm = copy.copy(self.vm)
 
         vm.set_extra_args(0)
-        MiniZamVM.instructions["RETURN"].execute(vm)
+        MiniZamVM.instructions["RETURN"].execute(vm, self.n)
 
         self.assertEqual(vm.get_stack().items,
                          self.stack_init[self.n + 3:])
@@ -409,7 +393,7 @@ class ReturnTest(unittest.TestCase):
     def test_extra_args_not_equal_0(self):
         vm = copy.copy(self.vm)
 
-        MiniZamVM.instructions["RETURN"].execute(vm)
+        MiniZamVM.instructions["RETURN"].execute(vm, self.n)
         self.assertEqual(vm.get_extra_args(), self.m - 1)
         self.assertEqual(vm.get_pc(), self.c)
         self.assertEqual(vm.get_env(), self.e)
@@ -429,8 +413,8 @@ class ReStartTest(unittest.TestCase):
         self.vm.set_env(self.env_int)
         self.n = len(self.vm.get_env())
 
-    def test_restart(self):
-        MiniZamVM.instructions["RESTART"].execute(self.vm)
+    def test_execute(self):
+        MiniZamVM.instructions["RESTART"].execute(self.vm, None)
 
         self.assertEqual(self.vm.get_stack().items, self.env_int[1:self.n] + self.stack_init)
         self.assertEqual(self.vm.get_extra_args(), self.m + (self.n - 1))
@@ -452,25 +436,23 @@ class GrabTest(unittest.TestCase):
 
         self.vm.set_pc(self.c)
 
-        self.vm.current_args = [self.n]
         self.vm.set_extra_args(self.m + self.n)
 
-    def test_extra_args_gt__n(self):
+    def test_execute(self):
         # extra_args > n
-        MiniZamVM.instructions["GRAB"].execute(self.vm)
+        MiniZamVM.instructions["GRAB"].execute(self.vm, self.n)
         self.assertEqual(self.vm.extra_args, self.m)
 
         # extra_args = n
         self.setUp()
         self.m = 2
-        MiniZamVM.instructions["GRAB"].execute(self.vm)
+        MiniZamVM.instructions["GRAB"].execute(self.vm, self.n)
         self.assertEqual(self.vm.extra_args, self.m)
 
         # extra_args < n
         self.setUp()
         self.n = 3
 
-        self.vm.current_args = [self.n]
         self.vm.push(MLValue.from_int(4))
         self.vm.push(MLValue.from_closure(1, []))
         self.vm.push(MLValue.from_int(10))
@@ -482,7 +464,7 @@ class GrabTest(unittest.TestCase):
         self.vm.set_pc(self.c)
         self.vm.set_env(self.e)
 
-        MiniZamVM.instructions["GRAB"].execute(self.vm)
+        MiniZamVM.instructions["GRAB"].execute(self.vm, self.n)
 
         self.assertEqual(self.vm.get_stack().items, self.stack_init[self.m + 4:])
         pc = self.stack_init[self.m + 1]
@@ -497,18 +479,17 @@ class MakeBlockTest(unittest.TestCase):
     def setUp(self):
         self.vm = MiniZamVM()
 
-        n = 2
+        self.n = 2
         stack_init = [MLValue.from_int(10), MLValue.from_closure(1, []), MLValue.from_int(4)]
         accu = MLValue.from_int(1)
-        self.block = [accu] + stack_init[0:n-1]
+        self.block = [accu] + stack_init[0:self.n - 1]
 
-        self.vm.current_args = [n]
         self.vm.set_accumulator(accu)
 
         self.vm.push(list(map(MLValue.from_int, [10, 1, 4])))
 
-    def test_make_block(self):
-        MiniZamVM.instructions["MAKEBLOCK"].execute(self.vm)
+    def test_execute(self):
+        MiniZamVM.instructions["MAKEBLOCK"].execute(self.vm, self.n)
 
         self.assertEqual(self.vm.get_accumulator().value, self.block)
 
@@ -520,11 +501,10 @@ class GetFieldTest(unittest.TestCase):
         self.n = 1
         self.accu_vals = [MLValue.from_int(1), MLValue.from_int(8), MLValue.from_int(4)]
 
-        self.vm.current_args = [self.n]
         self.vm.set_accumulator(MLValue.from_block(self.accu_vals))
 
-    def test_get_field(self):
-        MiniZamVM.instructions["GETFIELD"].execute(self.vm)
+    def test_execute(self):
+        MiniZamVM.instructions["GETFIELD"].execute(self.vm, self.n)
         self.assertEqual(self.vm.get_accumulator(), self.accu_vals[self.n])
 
 
@@ -536,8 +516,8 @@ class VectLengthTest(unittest.TestCase):
 
         self.vm.set_accumulator(MLValue.from_block(self.val_block))
 
-    def test_vect_length(self):
-        MiniZamVM.instructions["VECTLENGTH"].execute(self.vm)
+    def test_execute(self):
+        MiniZamVM.instructions["VECTLENGTH"].execute(self.vm, None)
         self.assertEqual(self.vm.get_accumulator(), MLValue.from_int(len(self.val_block)))
 
 
@@ -550,8 +530,8 @@ class GetVectItemTest(unittest.TestCase):
         self.vm.set_accumulator(MLValue.from_block(self.val_block))
         self.vm.push(list(map(MLValue.from_int, [1, 3, 36])))
 
-    def test_get_vect_item(self):
-        MiniZamVM.instructions["GETVECTITEM"].execute(self.vm)
+    def test_execute(self):
+        MiniZamVM.instructions["GETVECTITEM"].execute(self.vm, None)
 
         self.assertEqual(self.vm.get_stack().items, self.val_stack[1:])
         self.assertTrue(isinstance(self.vm.get_accumulator(), MLValue))
@@ -566,12 +546,11 @@ class SetFieldTest(unittest.TestCase):
         self.val_stack = [MLValue.from_int(4), MLValue.from_int(3), MLValue.from_int(36)]
         self.val_block = [MLValue.from_closure(1, []), MLValue.from_int(10)]
 
-        self.vm.current_args = [self.n]
         self.vm.set_accumulator(MLValue.from_block(self.val_block))
         self.vm.push(list(map(MLValue.from_int, [4, 3, 36])))
 
-    def test_set_field(self):
-        MiniZamVM.instructions["SETFIELD"].execute(self.vm)
+    def test_execute(self):
+        MiniZamVM.instructions["SETFIELD"].execute(self.vm, self.n)
         self.assertEqual(self.vm.get_accumulator().value, [self.val_block[0]] + [self.val_stack[0]])
 
 
@@ -586,8 +565,8 @@ class SetVectItemTest(unittest.TestCase):
         self.vm.push(MLValue.from_block(self.val_block))
         self.vm.push(list(map(MLValue.from_int, [1, 3, 36])))
 
-    def test_set_vect_item(self):
-        MiniZamVM.instructions["SETVECTITEM"].execute(self.vm)
+    def test_execute(self):
+        MiniZamVM.instructions["SETVECTITEM"].execute(self.vm, None)
         self.val_block[1] = MLValue.from_int(3)
         stack_res = self.val_stack[2::] + [MLValue.from_block(self.val_block)]
 
@@ -603,14 +582,15 @@ class AssignTest(unittest.TestCase):
         self.val_stack = [MLValue.from_int(1), MLValue.from_int(3), MLValue.from_int(36)]
         self.val_block = [MLValue.from_closure(1, []), MLValue.from_int(10)]
 
-        self.vm.current_args = [self.n]
         self.vm.set_accumulator(MLValue.from_block(self.val_block))
         self.vm.push(list(map(MLValue.from_int, [1, 3, 36])))
 
-    def test_assign(self):
-        MiniZamVM.instructions["ASSIGN"].execute(self.vm)
+    def test_exeucte(self):
+        MiniZamVM.instructions["ASSIGN"].execute(self.vm, self.n)
 
         self.val_stack[self.n] = MLValue.from_block(self.val_block)
 
         self.assertEqual(self.vm.get_stack().items, self.val_stack)
         self.assertEqual(self.vm.get_accumulator(), MLValue.unit())
+
+

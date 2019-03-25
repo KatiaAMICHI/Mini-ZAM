@@ -4,11 +4,34 @@ from .mlvalue import MLValue
 
 class Instruction(ABC):
     def parse_args(self, args):
-        return args;
+        return args
 
     @abstractmethod
-    def execute(self, state):
+    def execute(self, state, args):
         pass
+
+
+class ArgsParser:
+
+    def __init__(self, args, inst):
+        self.args = args
+        self.inst = inst
+
+    def parse(self, args_types):
+
+        if not isinstance(args_types, list):
+            args_types = [args_types]
+
+        if len(self.args) != len(args_types):
+            raise ValueError(self.inst + " expect " + str(len(args_types)) + " argument(s).")
+
+        args = []
+        for i, type_arg in enumerate(args_types):
+            args.append(type_arg(self.args[i]))
+
+        if len(args) == 1:
+            return args[0]
+        return args
 
     @staticmethod
     def check_length(value, l, inst):
@@ -55,8 +78,8 @@ class _Div(_BinaryPrim):
 
 class _And(_BinaryPrim):
     def execute(self, one, two):
-        Instruction.check_bool(one)
-        Instruction.check_bool(two)
+        ArgsParser.check_bool(one)
+        ArgsParser.check_bool(two)
         if one and two:
             return MLValue.true()
 
@@ -65,8 +88,8 @@ class _And(_BinaryPrim):
 
 class _Or(_BinaryPrim):
     def execute(self, one, two):
-        Instruction.check_bool(one)
-        Instruction.check_bool(two)
+        ArgsParser.check_bool(one)
+        ArgsParser.check_bool(two)
         if one or two:
             return MLValue.true()
 
@@ -75,7 +98,7 @@ class _Or(_BinaryPrim):
 
 class _Not(_UnaryPrim):
     def execute(self, one):
-        Instruction.check_bool(one)
+        ArgsParser.check_bool(one)
 
         if one is MLValue.true():
             return MLValue.false()
@@ -121,18 +144,15 @@ class _Print(_UnaryPrim):
 class Const(Instruction):
 
     def parse_args(self, args):
-        Instruction.check_length(args, 1, "CONST")
-        return MLValue.from_int(int(args[0]))
+        return ArgsParser(args, "CONST").parse([int])
 
-    def execute(self, state):
-        acc = self.parse_args(state.fetch())
-        state.set_accumulator(acc)
+    def execute(self, state, n):
+        state.set_accumulator(MLValue.from_int(n))
 
 
 class Prim(Instruction):
     def parse_args(self, args):
-        Instruction.check_length(args, 1, "PRIM")
-        return args[0]
+        return ArgsParser(args, "PRIM").parse([str])
 
     binary_op = {"+": _Add(), "-": _Minus(), "*": _Mul(), "/": _Div(),
                  "or": _Or(), "and": _And(),
@@ -140,8 +160,7 @@ class Prim(Instruction):
 
     unary_op = {"not": _Not(), "print": _Print()}
 
-    def execute(self, state):
-        op = self.parse_args(state.fetch())
+    def execute(self, state, op):
 
         if op in Prim.unary_op:
             x = Prim.unary_op[op].execute(state.get_accumulator())
@@ -156,22 +175,17 @@ class Prim(Instruction):
 class Branch(Instruction):
 
     def parse_args(self, args):
-        Instruction.check_length(args, 1, "BRANCH")
-        return args[0]
+        return ArgsParser(args, "BRANCH").parse([str])
 
-    def execute(self, state):
-        label = self.parse_args(state.fetch())
+    def execute(self, state, label):
         state.set_pc(state.get_position(label))
 
 
 class BranchIfNot(Instruction):
     def parse_args(self, args):
-        Instruction.check_length(args, 1, "BRANCHIFNOT")
-        return args[0]
+        return ArgsParser(args, "BRANCHIFNOT").parse([str])
 
-    def execute(self, state):
-        label = self.parse_args(state.fetch())
-
+    def execute(self, state, label):
         acc = state.get_accumulator()
         if acc is MLValue.false():
             state.set_pc(state.get_position(label))
@@ -182,7 +196,7 @@ class Push(Instruction):
     Empilement d'une valeur dans la stack
     """
 
-    def execute(self, state):
+    def execute(self, state, args):
         state.push(state.get_accumulator())
 
 
@@ -191,7 +205,7 @@ class Pop(Instruction):
     Dépilement d'une valeur dans la stack
     """
 
-    def execute(self, state):
+    def execute(self, state, args):
         state.pop()
 
 
@@ -201,11 +215,9 @@ class Acc(Instruction):
     """
 
     def parse_args(self, args):
-        Instruction.check_length(args, 1, "ACC")
-        return int(args[0])
+        return ArgsParser(args, "ACC").parse([int])
 
-    def execute(self, state):
-        index = self.parse_args(state.fetch())
+    def execute(self, state, index):
         state.set_accumulator(state.peek(index))
 
 
@@ -215,11 +227,9 @@ class EnvAcc(Instruction):
     """
 
     def parse_args(self, args):
-        Instruction.check_length(args, 1, "ENVACC")
-        return int(args[0])
+        return ArgsParser(args, "ENVACC").parse([int])
 
-    def execute(self, state):
-        index = self.parse_args(state.fetch())
+    def execute(self, state, index):
         state.set_accumulator(state.get_env(index))
 
 
@@ -229,11 +239,10 @@ class Closure(Instruction):
     """
 
     def parse_args(self, args):
-        Instruction.check_length(args, 2, "CLOSURE")
-        return args[0], int(args[1])
+        return ArgsParser(args, "CLOSURE").parse([str, int])
 
-    def execute(self, state):
-        (label, n) = self.parse_args(state.fetch())
+    def execute(self, state, args):
+        (label, n) = args
 
         if n > 0:
             state.push(state.get_accumulator())
@@ -244,11 +253,10 @@ class Closure(Instruction):
 
 class ClosureRec(Instruction):
     def parse_args(self, args):
-        Instruction.check_length(args, 2, "CLOSURE")
-        return args[0], int(args[1])
+        return ArgsParser(args, "CLOSUREREC").parse([str, int])
 
-    def execute(self, state):
-        (label, n) = self.parse_args(state.fetch())
+    def execute(self, state, args):
+        (label, n) = args
 
         pc = state.get_position(label)
         if n > 0:
@@ -261,18 +269,15 @@ class ClosureRec(Instruction):
 
 
 class OffSetClosure(Instruction):
-    def execute(self, state):
+    def execute(self, state, args):
         state.set_accumulator(MLValue.from_closure(state.get_env(0), state.get_env()))
 
 
 class Apply(Instruction):
     def parse_args(self, args):
-        Instruction.check_length(args, 1, "APPLY")
-        return int(args[0])
+        return ArgsParser(args, "APPLY").parse([int])
 
-    def execute(self, state):
-        n = self.parse_args(state.fetch())
-
+    def execute(self, state, n):
         args = state.pop(n)
 
         env = state.get_env()
@@ -289,9 +294,12 @@ class Grab(Instruction):
     Gestion de l’application partielle
     """
 
-    def execute(self, state):
-        n = int(state.fetch()[0])
-        extra_args = int(state.get_extra_args())
+    def parse_args(self, args):
+        return ArgsParser(args, "GRAB").parse([int])
+
+    def execute(self, state, n):
+
+        extra_args = state.get_extra_args()
 
         if extra_args >= n:
             state.set_extra_args(extra_args - n)
@@ -310,7 +318,7 @@ class Grab(Instruction):
 
 
 class ReStart(Instruction):
-    def execute(self, state):
+    def execute(self, state, args):
         env = state.get_env()
         n = len(env)
 
@@ -331,8 +339,10 @@ class MakeBlock(Instruction):
         si n >0
     """
 
-    def execute(self, state):
-        n = int(state.fetch()[0])
+    def parse_args(self, args):
+        return ArgsParser(args, "MAKEBLOCK").parse([int])
+
+    def execute(self, state, n):
         if n > 0:
             accu = state.get_accumulator()
             block = [accu]
@@ -349,8 +359,10 @@ class GetField(Instruction):
     Met dans l’accumulateur la n-ième valeur du bloc contenu dans accu.
     """
 
-    def execute(self, state):
-        n = int(state.fetch()[0])
+    def parse_args(self, args):
+        return ArgsParser(args, "GETFIELD").parse([int])
+
+    def execute(self, state, n):
         val = state.get_accumulator().value
         state.set_accumulator(val[n])
 
@@ -360,7 +372,7 @@ class VectLength(Instruction):
     met dans l’accumulateur la taille du bloc situé dans accu.
     """
 
-    def execute(self, state):
+    def execute(self, state, args):
         len_block = len(state.get_accumulator().value)
         state.set_accumulator(MLValue.from_int(len_block))
 
@@ -371,7 +383,7 @@ class GetVectItem(Instruction):
     bloc situé dans l’accumulateur
     """
 
-    def execute(self, state):
+    def execute(self, state, args):
         # dépile un élément n de stack
         n = state.pop()
         # récupére bloc dans l’accumulateur
@@ -389,9 +401,10 @@ class SetField(Instruction):
     la valeur d´epilée de stack.
     """
 
-    def execute(self, state):
-        n = int(state.fetch()[0])
+    def parse_args(self, args):
+        return ArgsParser(args, "SETFIELD").parse([int])
 
+    def execute(self, state, n):
         # dépiler une valeur dans la stack
         val_stack = state.pop()
 
@@ -412,7 +425,7 @@ class SetVectItem(Instruction):
     L'accumulateur prend () comme valeur
     """
 
-    def execute(self, state):
+    def execute(self, state, args):
         # dépiler deux valeurs dans la stack
         n = state.pop()
         v = state.pop()
@@ -430,8 +443,10 @@ class Assign(Instruction):
     L'accumulator prend la valeur ()
     """
 
-    def execute(self, state):
-        n = int(state.fetch()[0])
+    def parse_args(self, args):
+        return ArgsParser(args, "ASSIGN").parse([int])
+
+    def execute(self, state, n):
         acc = state.get_accumulator()
 
         # remplacer le n-ième élément de la pile par la valeur de accu
@@ -443,8 +458,11 @@ class Assign(Instruction):
 
 
 class Return(Instruction):
-    def execute(self, state):
-        n = int(state.fetch()[0])
+
+    def parse_args(self, args):
+        return ArgsParser(args, "RETURN").parse([int])
+
+    def execute(self, state, n):
         state.pop(n)
         if state.get_extra_args() == 0:
             state.set_pc(state.pop(0))
@@ -458,11 +476,10 @@ class Return(Instruction):
 class AppTerm(Instruction):
 
     def parse_args(self, args):
-        Instruction.check_length(args, 2, "APPTERM")
-        return int(args[0]), int(args[1])
+        return ArgsParser(args, "APPTERM").parse([int, int])
 
-    def execute(self, state):
-        n, m = self.parse_args(state.fetch())
+    def execute(self, state, args):
+        n, m = args
         args = state.pop(n)
         state.pop(m - n)
         state.push(args)
@@ -471,23 +488,21 @@ class AppTerm(Instruction):
 
 
 class Stop(Instruction):
-    def execute(self, state):
+    def execute(self, state, args):
         state.shutdown()
 
 
 class PushTrap(Instruction):
     def parse_args(self, args):
-        Instruction.check_length(args, 1, "PUSHTRAP")
-        return args[0]
+        return ArgsParser(args, "PUSHTRAP").parse([str])
 
-    def execute(self, state):
-        label = self.parse_args(state.fetch())
+    def execute(self, state, label):
         state.push([state.get_position(label), state.trap_sp, state.get_env(), state.extra_args])
         state.trap_sp = state.peek()
 
 
 class PopTrap(Instruction):
-    def execute(self, state):
+    def execute(self, state, args):
         state.pop()
         state.trap_sp = state.pop()
         state.pop(2)
@@ -495,7 +510,7 @@ class PopTrap(Instruction):
 
 class Raise(Instruction):
 
-    def execute(self, state):
+    def execute(self, state, args):
         if state.trap_sp is None:
             state.shutdown()
         else:

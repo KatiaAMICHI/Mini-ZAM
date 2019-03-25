@@ -108,7 +108,7 @@ class LineInstruction:
         """
         self.label = label
         self.command = command
-        self.args = args if args else []
+        self.args = args
 
     def __repr__(self):
         return "LineInstruction(Label : %s, Command : %s, args : %s)" % (self.label, self.command, self.args)
@@ -121,6 +121,7 @@ class LineInstruction:
         label = line[0] if line[0] else None
         command = line[1]
         args = line[2].replace(' ', '').split(",") if line[2] else []
+        args = MiniZamVM.instructions[command].parse_args(args)
         return LineInstruction(label, command, args)
 
 
@@ -151,7 +152,6 @@ class MiniZamVM:
         self.pc = 0  # pointeur de code vers l’instruction courante
         self.acc = MLValue.unit()
         self.extra_args = 0  # le nombre d’arguments restant a appliquer à une fonction
-        self.current_args = []
         self.trap_sp = None
 
     def get_stack(self):
@@ -316,15 +316,6 @@ class MiniZamVM:
         self.pc = self.acc.value[0]
         self.env = self.acc.value[1]
 
-    def fetch(self):
-        """
-        Renvoie les arguments courrant
-
-        :return: renvoie les arguments de l'instruction courante
-        """
-
-        return self.current_args
-
     def print_current_state(self):
         """
         Impression du context du programme
@@ -339,9 +330,10 @@ class MiniZamVM:
         """
 
         while True:
-            print(self.prog[self.pc].command, ' pc =', self.pc)
-            self.instructions[self.prog[self.increment_pc()].command].execute(self)
-            self.print_current_state()
+            # print(self.prog[self.pc].command, ' pc =', self.pc)
+            inst = self.prog[self.increment_pc()]
+            self.instructions[inst.command].execute(self, inst.args)
+            # self.print_current_state()
 
     def shutdown(self):
         """
@@ -366,9 +358,7 @@ class MiniZamVM:
         for i, line in enumerate(self.prog):
             if self.prog[i].command == "APPLY" and self.prog[i + 1].command == "RETURN":
                 self.prog[i].command = "APPTERM"
-                n = int(self.prog[i].args[0])
-                m = n + int(self.prog[i + 1].args[0])
+                n = self.prog[i].args
+                m = n + self.prog[i + 1].args
                 self.prog[i].args = [n, m]
                 del self.prog[i + 1]
-
-        print(self.prog)
