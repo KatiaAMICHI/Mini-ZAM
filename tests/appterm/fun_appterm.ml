@@ -1,5 +1,5 @@
 
-let rec h x = if x < 10 then h (x-1) else x
+let rec h x = if x > 1 then h (x-1) else x
 
 let g x = h x
 

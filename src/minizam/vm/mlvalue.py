@@ -1,11 +1,17 @@
 class MLValue:
-    _TRUE = True
-    _FALSE = False
+    _TRUE = None
+    _FALSE = None
     _UNIT = None
 
     def __init__(self):
         super().__init__()
         self.value = None
+
+    @staticmethod
+    def from_block(block):
+        value = MLValue()
+        value.value = block
+        return value
 
     @staticmethod
     def from_closure(pc, env):
@@ -24,23 +30,26 @@ class MLValue:
 
     @staticmethod
     def true():
-        value = MLValue()
-        value.value = MLValue._TRUE
-        return value
+        if MLValue._TRUE is None:
+            MLValue._TRUE = MLValue()
+            MLValue._TRUE.value = 1
+        return MLValue._TRUE
 
     @staticmethod
     def false():
-        value = MLValue()
-        value.value = MLValue._FALSE
-        return value
+        if MLValue._FALSE is None:
+            MLValue._FALSE = MLValue()
+            MLValue._FALSE.value = 0
+        return MLValue._FALSE
 
     @staticmethod
     def unit():
-        value = MLValue()
-        value.value = MLValue._UNIT
-        return value
+        if MLValue._UNIT is None:
+            MLValue._UNIT = MLValue()
+            MLValue._UNIT.value = 0
+        return MLValue._UNIT
 
-    def _check(self, other):
+    def _check_int(self, other):
         if not isinstance(self.value, int):
             raise TypeError(str(self.value) + " is not an instance of int")
         if not isinstance(other, MLValue):
@@ -49,41 +58,43 @@ class MLValue:
             raise TypeError(str(other.value) + " is not an instance of int")
 
     def __repr__(self):
-        if self.value is MLValue._FALSE:
+        if self is MLValue._FALSE:
             return "False"
-        if self.value is MLValue._TRUE:
+        if self is MLValue._TRUE:
             return "True"
-        if self.value is MLValue._UNIT:
+        if self is MLValue._UNIT:
             return "()"
 
-        return "mlvalue(Value: %s)" % str(self.value)
+        return "MLValue(Value: %s)" % str(self.value)
 
     def __str__(self):
-        if self.value is MLValue._FALSE:
+        if self is MLValue._FALSE:
             return "False"
-        if self.value is MLValue._TRUE:
+        if self is MLValue._TRUE:
             return "True"
-        if self.value is MLValue._UNIT:
+        if self is MLValue._UNIT:
             return "()"
-        return "mlvalue(Value: %s)" % str(self.value)
+        return "MLValue(Value: %s)" % str(self.value)
 
     def __add__(self, other):
-        self._check(other)
+        self._check_int(other)
         return MLValue.from_int(self.value + other.value)
 
     def __sub__(self, other):
-        self._check(other)
+        self._check_int(other)
         return MLValue.from_int(self.value - other.value)
 
     def __mul__(self, other):
-        self._check(other)
+        self._check_int(other)
         return MLValue.from_int(self.value * other.value)
 
     def __truediv__(self, other):
-        self._check(other)
-        return MLValue.from_int(self.value / other.value)
+        self._check_int(other)
+        return MLValue.from_int(int(self.value / other.value))
 
     def __eq__(self, other):
+        if not isinstance(other, MLValue):
+            return False
         if self.value == other.value:
             return MLValue.true()
         else:
@@ -96,37 +107,37 @@ class MLValue:
             return MLValue.false()
 
     def __lt__(self, other):
-        self._check(other)
+        self._check_int(other)
         if self.value < other.value:
             return MLValue.true()
         else:
             return MLValue.false()
 
     def __le__(self, other):
-        self._check(other)
+        self._check_int(other)
         if self.value <= other.value:
             return MLValue.true()
         else:
             return MLValue.false()
 
     def __gt__(self, other):
-        self._check(other)
+        self._check_int(other)
         if self.value > other.value:
             return MLValue.true()
         else:
             return MLValue.false()
 
     def __ge__(self, other):
-        self._check(other)
+        self._check_int(other)
         if self.value >= other.value:
             return MLValue.true()
         else:
             return MLValue.false()
 
     def __bool__(self):
-        if self.value is MLValue._FALSE:
+        if self.value == 0:
             return False
-        elif self.value is MLValue._TRUE:
+        if self.value == 1:
             return True
-        else:
-            raise TypeError(str(self) + " is not an instance of bool")
+
+        raise TypeError(str(self) + " is not an instance of bool.")
